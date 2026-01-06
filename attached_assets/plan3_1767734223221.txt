@@ -1,0 +1,213 @@
+NÚCLEO CONTABLE EXTENSIBLE 
+software GRAVY
+Contexto General
+
+Actúa como un arquitecto y desarrollador de software fullstack experimentado, con énfasis en sistemas contables colombianos y modelo SaaS por suscripción.
+Debes generar una aplicación contable multiempresa accesible a múltiples usuarios (empresas) mediante suscripción.
+Todo el código, documentación, nombres de objetos, comentarios y mensajes al usuario deben escribirse en idioma español.
+El sistema debe construirse de forma que el núcleo contable sea extensible para incorporar en el futuro:
+Manejo de inventarios y costeo.
+Gestión contable bajo NIIF (Normas Internacionales de Información Financiera).
+
+1. Gestión de Base de Datos Compartida — Diseño Preparado para Inventario y NIIF
+1.1 Reglas Multi-Tenant
+
+Utilizar una sola base de datos compartida con campo obligatorio:
+tenant_id identificador de empresa.
+
+El aislamiento se hará por:
+filtros SQL automáticos
+middleware
+repositorios.
+
+Todas las tablas del módulo contable deberán incluir:
+tenant_id
+fecha_creacion
+usuario_creacion
+usuario_modificacion
+flags de extensión NIIF
+
+1.2 Tablas del Núcleo Contable (Obligatorias)
+
+Debes diseñar estas tablas con campos de proyección a NIIF e inventarios:
+-tenants
+
+id
+nombre
+tipo_empresa
+grupo_niif (3, 2, micro)
+moneda_funcional
+responsable_contable
+
+-plan_cuentas
+
+id
+tenant_id
+codigo
+nombre
+nivel
+padre_id
+naturaleza (D/C)
+permite_tercero
+permite_centro_costo
+Campos NIIF a futuro:
+categoria_niif (activo, pasivo, inventario, costo, ingreso)
+metodo_medicion (costo, valor razonable, costo amortizado)
+requiere_deterioro
+clasificacion_activo
+
+-asientos
+
+id
+tenant_id
+fecha
+tipo_comprobante
+numero
+descripción
+tercero_id
+periodo_id
+estado
+
+Proyección NIIF:
+evento_niif
+modulo_origen
+politica_aplicada
+
+- lineas_asiento
+
+id
+asiento_id
+tenant_id
+cuenta_id
+debito
+credito
+centro_costo
+tercero_id
+referencia_doc
+detalle
+
+Extensible a inventarios:
+
+producto_id
+cantidad
+costo_unitario
+tipo_mov_inventario
+
+- terceros
+
+id
+tenant_id
+identificacion
+nombre
+tipo (cliente/proveedor/empleado)
+
+NIIF:
+vinculo_economico
+parte_relacionada
+
+- centros_costo
+Listos para costeo NIIF:
+categoria_distribucion
+base_prorrateo
+
+- impuestos_config
+
+Preparados para NIIF:
+tratamiento_niif_impuesto
+cuenta_impuesto_id
+
+- periodos_contables
+
+id
+tenant_id
+fecha_inicio
+fecha_fin
+cerrado
+
+NIIF:
+
+cierre_niif_realizado
+reexpresion
+
+- auditoria
+
+tenant_id
+objeto
+cambio
+fecha
+1.3 Consideraciones Obligatorias de Diseño
+El agente debe:
+Dejar el modelo con:
+relaciones débiles para productos e inventario
+campos opcionales producto_id en tablas de líneas.
+índices compuestos:
+(tenant_id, cuenta_id, fecha)
+(tenant_id, producto_id).
+El script de creación debe contemplar:
+posibilidad de kardex
+tablas futuras:
+inventory_products
+inventory_movements
+inventory_valuation_methods
+Incluir tabla de políticas NIIF por tenant:
+
+- niif_politicas
+tenant_id
+modulo
+metodo_medicion
+cuentas_asociadas
+
+ 2. Flujo del Núcleo Contable (Partida Doble)
+Sin importar extensiones, debes construir:
+Registro de asientos con validación:
+débitos = créditos por tenant.
+Procesos preparados para inventario:
+Asientos con origen “inventario”
+costeo por promedio, PEPS, identificación específica.
+interfaces de distribución a costo y gasto.
+Gestión NIIF:
+selección de política por cuenta
+re-medición
+deterioro
+cierres con reclasificación.
+
+ 3. Backend — Escritura del Código
+
+El agente debe generar:
+API en español con repositorios que siempre reciban tenant_id.
+Endpoints con proyección:
+
+- POST /api/{tenant}/asientos
+- GET /api/{tenant}/balance
+- GET /api/{tenant}/mayor/{cuenta}
+- GET /api/{tenant}/niif/politicas
+- POST /api/{tenant}/inventario/movimientos (futuro)
+
+Código escrito y comentado en idioma españñol explicando:
+reglas contables
+cómo se usarán los campos de inventario
+tratamiento NIIF.
+
+ 4. Frontend
+Dashboard con selector de empresa.
+CRUD cuentas y terceros.
+Formulario de asientos con secciones opcionales de producto/cantidad.
+
+ 5. Reglas de Escritura
+Código limpio y documentado en español.
+README describiendo:
+modelo extensible
+cómo integrar inventario
+cómo activar NIIF por tenant.
+
+Ejemplos:
+
+asiento normal
+asiento con proyección inventario
+política NIIF.
+
+ 6. Entregables
+
+Scripts MySQL con campos NIIF e inventario.
+Backend comentado en español.
+Front funcional.
