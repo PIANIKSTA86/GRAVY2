@@ -1,9 +1,12 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
+import { useAuth } from "@/hooks/use-auth";
+import { Loader2 } from "lucide-react";
+import { useEffect } from "react";
 
 // Pages
 import TenantSelection from "@/pages/TenantSelection";
@@ -14,6 +17,21 @@ import Asientos from "@/pages/Asientos";
 import Niif from "@/pages/Niif";
 
 function Router() {
+  const { user, isLoading } = useAuth();
+  const [, setLocation] = useLocation();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Si no hay usuario, redirigir a la selección de tenant (o login implícito de Replit)
+  // Replit Auth manejará la redirección al login si intentamos acceder a una ruta protegida
+  // Pero aquí aseguramos que el estado del frontend sea consistente
+
   return (
     <Switch>
       <Route path="/" component={TenantSelection} />

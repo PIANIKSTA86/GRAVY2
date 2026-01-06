@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { insertTenantSchema } from "@shared/schema";
 import { z } from "zod";
 import { Link } from "wouter";
-import { Building2, Plus, ArrowRight, Loader2 } from "lucide-react";
+import { Building2, Plus, ArrowRight, Loader2, LogOut, User } from "lucide-react";
 import { 
   Dialog, 
   DialogContent, 
@@ -14,10 +14,13 @@ import {
 } from "@/components/ui/dialog";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
+import { Button } from "@/components/ui/button";
 
 type TenantForm = z.infer<typeof insertTenantSchema>;
 
 export default function TenantSelection() {
+  const { user, logout } = useAuth();
   const { data: tenants, isLoading } = useTenants();
   const createTenant = useCreateTenant();
   const [open, setOpen] = useState(false);
@@ -54,6 +57,19 @@ export default function TenantSelection() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+      <div className="absolute top-4 right-4 flex items-center gap-4">
+        {user && (
+          <div className="flex items-center gap-2 text-sm text-slate-600 bg-white px-3 py-1.5 rounded-full border border-slate-200 shadow-sm">
+            <User className="h-4 w-4" />
+            <span>{user.email}</span>
+          </div>
+        )}
+        <Button variant="ghost" size="sm" onClick={() => logout()} className="text-slate-500 hover:text-red-600">
+          <LogOut className="h-4 w-4 mr-2" />
+          Cerrar Sesión
+        </Button>
+      </div>
+
       <div className="w-full max-w-4xl">
         <div className="text-center mb-12">
           <div className="inline-flex items-center justify-center p-4 bg-blue-600 rounded-2xl shadow-lg shadow-blue-900/20 mb-6">
