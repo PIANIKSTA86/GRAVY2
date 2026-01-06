@@ -34,6 +34,13 @@ export const api = {
         200: z.array(z.custom<typeof tenants.$inferSelect>()),
       },
     },
+    listByOwner: {
+      method: 'GET' as const,
+      path: '/api/my-tenants',
+      responses: {
+        200: z.array(z.custom<typeof tenants.$inferSelect>()),
+      },
+    },
     create: {
       method: 'POST' as const,
       path: '/api/tenants',

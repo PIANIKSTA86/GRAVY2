@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { 
-  tenants, planCuentas, terceros, centrosCosto, periodosContables, asientos, lineasAsiento, niifPoliticas,
+  tenants, planCuentas, terceros, centrosCosto, periodosContables, asientos, lineasAsiento, niifPoliticas, tenantUsers,
   type InsertTenant, type InsertPlanCuenta, type InsertTercero, type CreateAsientoCompleto, type InsertNiifPolitica,
   type Tenant, type PlanCuenta, type Tercero, type Asiento, type LineaAsiento, type NiifPolitica
 } from "@shared/schema";
@@ -8,7 +8,7 @@ import { eq, and } from "drizzle-orm";
 
 export interface IStorage {
   // Tenants
-  getTenants(): Promise<Tenant[]>;
+  getTenants(userId?: string): Promise<Tenant[]>;
   getTenant(id: number): Promise<Tenant | undefined>;
   createTenant(tenant: InsertTenant): Promise<Tenant>;
 
@@ -27,10 +27,48 @@ export interface IStorage {
   // NIIF
   getNiifPoliticas(tenantId: number): Promise<NiifPolitica[]>;
   createNiifPolitica(politica: InsertNiifPolitica): Promise<NiifPolitica>;
+
+  // User-Tenant Associations
+  getTenantsForUser(userId: string): Promise<Tenant[]>;
+  associateUserToTenant(tenantId: number, userId: string, role: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
-  async getTenants(): Promise<Tenant[]> {
+  async getTenantsForUser(userId: string): Promise<Tenant[]> {
+    const results = await db
+      .select({
+        tenant: tenants
+      })
+      .from(tenantUsers)
+      .innerJoin(tenants, eq(tenantUsers.tenantId, tenants.id))
+      .where(eq(tenantUsers.userId, userId));
+    
+    return results.map(r => r.tenant);
+  }
+
+  async associateUserToTenant(tenantId: number, userId: string, role: string): Promise<void> {
+    await db.insert(tenantUsers).values({
+      tenantId,
+      userId,
+      role
+    });
+  }
+
+  async getTenants(userId?: string): Promise<Tenant[]> {
+    if (userId) {
+      // Return tenants where the user is an owner or has an association
+      const owned = await db.select().from(tenants).where(eq(tenants.ownerId, userId));
+      const associated = await this.getTenantsForUser(userId);
+      
+      // Merge and remove duplicates by ID
+      const all = [...owned, ...associated];
+      const seen = new Set();
+      return all.filter(t => {
+        if (seen.has(t.id)) return false;
+        seen.add(t.id);
+        return true;
+      });
+    }
     return await db.select().from(tenants);
   }
 

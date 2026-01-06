@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, numeric, date, index, foreignKey } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, numeric, date, index, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -13,8 +13,42 @@ export const tenants = pgTable("tenants", {
   grupoNiif: text("grupo_niif").notNull(), // 1, 2, 3
   monedaFuncional: text("moneda_funcional").default("COP").notNull(),
   responsableContable: text("responsable_contable"),
+  ownerId: varchar("owner_id").references(() => users.id), // Usuario que creó la empresa
   fechaCreacion: timestamp("fecha_creacion").defaultNow(),
 });
+
+// Tabla para asociar usuarios a empresas (Suscripciones/Acceso)
+export const tenantUsers = pgTable("tenant_users", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenant_id").references(() => tenants.id).notNull(),
+  userId: varchar("user_id").references(() => users.id).notNull(),
+  role: text("role").default("viewer").notNull(), // admin, editor, viewer
+  fechaAsociacion: timestamp("fecha_asociacion").defaultNow(),
+}, (table) => ({
+  tenantUserIdx: index("idx_tenant_user").on(table.tenantId, table.userId),
+}));
+
+export const tenantsRelations = relations(tenants, ({ many, one }) => ({
+  planCuentas: many(planCuentas),
+  terceros: many(terceros),
+  asientos: many(asientos),
+  usuarios: many(tenantUsers),
+  owner: one(users, {
+    fields: [tenants.ownerId],
+    references: [users.id],
+  }),
+}));
+
+export const tenantUsersRelations = relations(tenantUsers, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [tenantUsers.tenantId],
+    references: [tenants.id],
+  }),
+  user: one(users, {
+    fields: [tenantUsers.userId],
+    references: [users.id],
+  }),
+}));
 
 // 2. Plan de Cuentas
 export const planCuentas = pgTable("plan_cuentas", {

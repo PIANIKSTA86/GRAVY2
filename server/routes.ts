@@ -15,15 +15,17 @@ export async function registerRoutes(
   registerAuthRoutes(app);
 
   // Tenants
-  app.get(api.tenants.list.path, async (req, res) => {
-    const items = await storage.getTenants();
+  app.get(api.tenants.list.path, async (req: any, res) => {
+    const userId = req.user?.claims?.sub;
+    const items = await storage.getTenants(userId);
     res.json(items);
   });
 
-  app.post(api.tenants.create.path, async (req, res) => {
+  app.post(api.tenants.create.path, async (req: any, res) => {
     try {
+      const userId = req.user?.claims?.sub;
       const input = api.tenants.create.input.parse(req.body);
-      const item = await storage.createTenant(input);
+      const item = await storage.createTenant({ ...input, ownerId: userId });
       res.status(201).json(item);
     } catch (err) {
       if (err instanceof z.ZodError) {
@@ -38,6 +40,12 @@ export async function registerRoutes(
     const item = await storage.getTenant(Number(req.params.id));
     if (!item) return res.status(404).json({ message: "Tenant no encontrado" });
     res.json(item);
+  });
+
+  app.get(api.tenants.listByOwner.path, isAuthenticated, async (req: any, res) => {
+    const userId = req.user.claims.sub;
+    const items = await storage.getTenantsForUser(userId);
+    res.json(items);
   });
 
   // Terceros
@@ -139,7 +147,9 @@ export async function registerRoutes(
       responsableContable: "Juan Perez",
     });
 
-    await storage.createPlanCuenta({
+    // Asociar usuario demo si existe (o simplemente crear la relación para futuros usuarios)
+    // En un entorno real, esto se haría tras la creación del primer usuario o registro.
+  }
       tenantId: tenant.id,
       codigo: "1105",
       nombre: "Caja",
