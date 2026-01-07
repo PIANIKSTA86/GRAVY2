@@ -10,8 +10,9 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger 
 } from "@/components/ui/dialog";
 import { useState } from "react";
-import { Plus, Search, FolderTree } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ExpandableCuentasTable } from "@/components/ExpandableCuentasTable";
 
 type CuentaForm = Omit<z.infer<typeof insertPlanCuentasSchema>, "tenantId">;
 
@@ -46,11 +47,6 @@ export default function PlanCuentas() {
       toast({ title: "Error al crear cuenta", variant: "destructive" });
     }
   };
-
-  const filteredCuentas = cuentas?.filter(c => 
-    c.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    c.codigo.includes(searchTerm)
-  );
 
   return (
     <Layout tenantId={tenantId!}>
@@ -130,45 +126,8 @@ export default function PlanCuentas() {
 
         {isLoading ? (
           <div className="p-12"><Loading /></div>
-        ) : filteredCuentas && filteredCuentas.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-slate-50 text-slate-500 font-medium">
-                <tr>
-                  <th className="px-6 py-3">Código</th>
-                  <th className="px-6 py-3">Nombre</th>
-                  <th className="px-6 py-3 text-center">Nivel</th>
-                  <th className="px-6 py-3 text-center">Naturaleza</th>
-                  <th className="px-6 py-3 text-center">Configuración</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredCuentas.map((cuenta) => (
-                  <tr key={cuenta.id} className="hover:bg-slate-50/50 transition-colors group">
-                    <td className="px-6 py-3 font-mono font-medium text-slate-700">{cuenta.codigo}</td>
-                    <td className="px-6 py-3 font-medium text-slate-900 flex items-center gap-2">
-                       <FolderTree className={`h-4 w-4 ${cuenta.nivel === 1 ? 'text-blue-600' : 'text-slate-400'}`} />
-                       <span style={{ paddingLeft: `${(cuenta.nivel - 1) * 12}px` }}>
-                         {cuenta.nombre}
-                       </span>
-                    </td>
-                    <td className="px-6 py-3 text-center text-slate-500">{cuenta.nivel}</td>
-                    <td className="px-6 py-3 text-center">
-                      <span className={`px-2 py-0.5 rounded text-xs font-bold ${cuenta.naturaleza === 'D' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                        {cuenta.naturaleza === 'D' ? 'Débito' : 'Crédito'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-3 text-center">
-                      <div className="flex justify-center gap-2">
-                        {cuenta.permiteTercero && <span className="px-1.5 py-0.5 bg-slate-100 text-slate-600 text-[10px] rounded uppercase font-bold tracking-wider">Tercero</span>}
-                        {cuenta.permiteCentroCosto && <span className="px-1.5 py-0.5 bg-slate-100 text-slate-600 text-[10px] rounded uppercase font-bold tracking-wider">CC</span>}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        ) : cuentas && cuentas.length > 0 ? (
+          <ExpandableCuentasTable cuentas={cuentas} searchTerm={searchTerm} />
         ) : (
           <div className="p-12 text-center text-slate-500">
             <p>No se encontraron cuentas.</p>
