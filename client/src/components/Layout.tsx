@@ -9,10 +9,12 @@ import {
   Scale, 
   LogOut,
   Menu,
-  X
+  X,
+  Calculator
 } from "lucide-react";
 import { useState } from "react";
 import { clsx } from "clsx";
+import { CollapsibleMenu } from "./CollapsibleMenu";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -24,8 +26,9 @@ export default function Layout({ children, tenantId }: LayoutProps) {
   const { data: tenant } = useTenant(tenantId);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const navigation = [
-    { name: "Dashboard", href: `/${tenantId}/dashboard`, icon: LayoutDashboard },
+  const dashboardItem = { name: "Dashboard", href: `/${tenantId}/dashboard`, icon: LayoutDashboard };
+
+  const contabilidadItems = [
     { name: "Plan de Cuentas", href: `/${tenantId}/cuentas`, icon: BookOpen },
     { name: "Terceros", href: `/${tenantId}/terceros`, icon: Users },
     { name: "Asientos Contables", href: `/${tenantId}/asientos`, icon: FileText },
@@ -54,24 +57,27 @@ export default function Layout({ children, tenantId }: LayoutProps) {
         )}
 
         <nav className="flex-1 px-4 py-6 space-y-1">
-          {navigation.map((item) => {
-            const isActive = location === item.href;
-            return (
-              <Link 
-                key={item.name} 
-                href={item.href}
-                className={clsx(
-                  "flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 group",
-                  isActive 
-                    ? "bg-blue-600 text-white shadow-md shadow-blue-900/30 translate-x-1" 
-                    : "text-slate-300 hover:bg-slate-800 hover:text-white hover:translate-x-1"
-                )}
-              >
-                <item.icon className={clsx("h-5 w-5", isActive ? "text-white" : "text-slate-400 group-hover:text-white")} />
-                {item.name}
-              </Link>
-            );
-          })}
+          {/* Dashboard */}
+          <Link 
+            href={dashboardItem.href}
+            className={clsx(
+              "flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 group",
+              location === dashboardItem.href
+                ? "bg-blue-600 text-white shadow-md shadow-blue-900/30 translate-x-1" 
+                : "text-slate-300 hover:bg-slate-800 hover:text-white hover:translate-x-1"
+            )}
+          >
+            <dashboardItem.icon className={clsx("h-5 w-5", location === dashboardItem.href ? "text-white" : "text-slate-400 group-hover:text-white")} />
+            {dashboardItem.name}
+          </Link>
+
+          {/* Contabilidad Menu */}
+          <CollapsibleMenu 
+            title="Contabilidad"
+            icon={Calculator}
+            items={contabilidadItems}
+            tenantId={tenantId}
+          />
         </nav>
 
         <div className="p-4 border-t border-slate-800">
@@ -100,22 +106,42 @@ export default function Layout({ children, tenantId }: LayoutProps) {
       {isMobileMenuOpen && (
         <div className="fixed inset-0 bg-slate-900 z-10 pt-20 px-4 lg:hidden">
            <nav className="space-y-2">
-            {navigation.map((item) => (
-              <Link 
-                key={item.name} 
-                href={item.href}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={clsx(
-                  "flex items-center gap-3 px-4 py-4 text-base font-medium rounded-lg transition-colors",
-                  location === item.href 
-                    ? "bg-blue-600 text-white" 
-                    : "text-slate-300 hover:bg-slate-800"
-                )}
-              >
-                <item.icon className="h-5 w-5" />
-                {item.name}
-              </Link>
-            ))}
+            {/* Dashboard */}
+            <Link 
+              href={dashboardItem.href}
+              onClick={() => setIsMobileMenuOpen(false)}
+              className={clsx(
+                "flex items-center gap-3 px-4 py-4 text-base font-medium rounded-lg transition-colors",
+                location === dashboardItem.href
+                  ? "bg-blue-600 text-white" 
+                  : "text-slate-300 hover:bg-slate-800"
+              )}
+            >
+              <dashboardItem.icon className="h-5 w-5" />
+              {dashboardItem.name}
+            </Link>
+
+            {/* Contabilidad Items */}
+            <div className="space-y-1 pt-2">
+              <p className="px-4 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Contabilidad</p>
+              {contabilidadItems.map((item) => (
+                <Link 
+                  key={item.name} 
+                  href={item.href}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={clsx(
+                    "flex items-center gap-3 px-6 py-3 text-base font-medium rounded-lg transition-colors ml-2",
+                    location === item.href
+                      ? "bg-blue-600 text-white" 
+                      : "text-slate-300 hover:bg-slate-800"
+                  )}
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.name}
+                </Link>
+              ))}
+            </div>
+
              <Link 
               href="/"
               className="flex items-center gap-3 px-4 py-4 text-base font-medium text-red-400 hover:bg-slate-800 rounded-lg mt-8"
