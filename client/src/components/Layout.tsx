@@ -10,7 +10,12 @@ import {
   LogOut,
   Menu,
   X,
-  Calculator
+  Calculator,
+  Home,
+  FileArchive,
+  Calendar,
+  FileArchive as ArchiveIcon,
+  MessageSquare
 } from "lucide-react";
 import { useState } from "react";
 import { clsx } from "clsx";
@@ -33,6 +38,14 @@ export default function Layout({ children, tenantId }: LayoutProps) {
     { name: "Terceros", href: `/${tenantId}/terceros`, icon: Users },
     { name: "Asientos Contables", href: `/${tenantId}/asientos`, icon: FileText },
     { name: "Políticas NIIF", href: `/${tenantId}/niif`, icon: Scale },
+  ];
+
+  const miComunidadItems = [
+    { name: "Unidades", href: `/${tenantId}/unidades`, icon: Home },
+    { name: "Facturación PH", href: `/${tenantId}/facturacion-ph`, icon: FileText },
+    { name: "Reservas", href: `/${tenantId}/reservas`, icon: Calendar },
+    { name: "Documentos", href: `/${tenantId}/documentos`, icon: ArchiveIcon },
+    { name: "PQRS", href: `/${tenantId}/pqrs`, icon: MessageSquare },
   ];
 
   return (
@@ -76,6 +89,14 @@ export default function Layout({ children, tenantId }: LayoutProps) {
             title="Contabilidad"
             icon={Calculator}
             items={contabilidadItems}
+            tenantId={tenantId}
+          />
+
+          {/* Mi Comunidad Menu */}
+          <CollapsibleMenu 
+            title="Mi Comunidad"
+            icon={Building2}
+            items={miComunidadItems}
             tenantId={tenantId}
           />
         </nav>
@@ -125,6 +146,27 @@ export default function Layout({ children, tenantId }: LayoutProps) {
             <div className="space-y-1 pt-2">
               <p className="px-4 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Contabilidad</p>
               {contabilidadItems.map((item) => (
+                <Link 
+                  key={item.name} 
+                  href={item.href}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={clsx(
+                    "flex items-center gap-3 px-6 py-3 text-base font-medium rounded-lg transition-colors ml-2",
+                    location === item.href
+                      ? "bg-blue-600 text-white" 
+                      : "text-slate-300 hover:bg-slate-800"
+                  )}
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.name}
+                </Link>
+              ))}
+            </div>
+
+            {/* Mi Comunidad Items */}
+            <div className="space-y-1 pt-2">
+              <p className="px-4 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Mi Comunidad</p>
+              {miComunidadItems.map((item) => (
                 <Link 
                   key={item.name} 
                   href={item.href}
