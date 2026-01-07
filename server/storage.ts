@@ -55,10 +55,6 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTenants(userId?: string): Promise<Tenant[]> {
-    if (process.env.DEV_AUTH_BYPASS === "true") {
-      return await db.select().from(tenants);
-    }
-
     if (userId) {
       // Return tenants where the user is an owner or has an association
       const owned = await db.select().from(tenants).where(eq(tenants.ownerId, userId));

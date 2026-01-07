@@ -20,17 +20,17 @@ export function useTenants() {
   });
 }
 
-export function useTenant(id: string) {
+export function useTenant(id: string | undefined) {
   return useQuery({
     queryKey: [api.tenants.get.path, id],
     queryFn: async () => {
-      if (!id) return null;
+      if (!id || id === 'undefined' || id === 'null') return null;
       const url = buildUrl(api.tenants.get.path, { id });
       const res = await fetch(url, { credentials: "include" });
       if (!res.ok) throw new Error("Error fetching tenant");
       return api.tenants.get.responses[200].parse(await res.json());
     },
-    enabled: !!id,
+    enabled: !!id && id !== 'undefined' && id !== 'null',
   });
 }
 

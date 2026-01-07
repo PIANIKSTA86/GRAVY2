@@ -18,8 +18,13 @@ async function fetchUser(): Promise<User | null> {
 }
 
 async function logout(): Promise<void> {
-  // Request server logout and land back on the app entry
-  window.location.href = "/api/logout?returnTo=/";
+  // Logout del servidor
+  await fetch("/api/auth/logout", {
+    method: "POST",
+    credentials: "include",
+  });
+  // Redirigir al landing page
+  window.location.href = "/";
 }
 
 export function useAuth() {

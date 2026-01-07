@@ -21,8 +21,22 @@ export const users = mysqlTable("users", {
   firstName: varchar("first_name", { length: 255 }),
   lastName: varchar("last_name", { length: 255 }),
   profileImageUrl: varchar("profile_image_url", { length: 255 }),
+  subscriberId: varchar("subscriber_id", { length: 255 }).unique(), // ID de suscriptor
+  passwordHash: varchar("password_hash", { length: 255 }), // Hash de contraseña
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+});
+
+// Tabla de auditoría de login
+export const loginAttempts = mysqlTable("login_attempts", {
+  id: int("id").autoincrement().primaryKey(),
+  email: varchar("email", { length: 255 }),
+  subscriberId: varchar("subscriber_id", { length: 255 }),
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: varchar("user_agent", { length: 500 }),
+  success: boolean("success").default(false),
+  failureReason: varchar("failure_reason", { length: 255 }),
+  attemptedAt: timestamp("attempted_at").defaultNow(),
 });
 
 // 1. Tenants (Empresas)

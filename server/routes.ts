@@ -3,7 +3,7 @@ import type { Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
-import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
+import { setupAuthRoutes, isAuthenticated } from "./auth";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -11,19 +11,18 @@ export async function registerRoutes(
 ): Promise<Server> {
 
   // Auth Setup
-  await setupAuth(app);
-  registerAuthRoutes(app);
+  setupAuthRoutes(app);
 
   // Tenants
   app.get(api.tenants.list.path, isAuthenticated, async (req: any, res) => {
-    const userId = req.user?.claims?.sub;
+    const userId = (req.session as any).userId;
     const items = await storage.getTenants(userId);
     res.json(items);
   });
 
   app.post(api.tenants.create.path, isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = (req.session as any).userId;
       const input = api.tenants.create.input.parse(req.body);
       const item = await storage.createTenant({ ...input, ownerId: userId });
       res.status(201).json(item);
@@ -37,13 +36,17 @@ export async function registerRoutes(
   });
 
   app.get(api.tenants.get.path, isAuthenticated, async (req, res) => {
-    const item = await storage.getTenant(Number(req.params.id));
+    const id = Number(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ message: "ID de tenant inválido" });
+    }
+    const item = await storage.getTenant(id);
     if (!item) return res.status(404).json({ message: "Tenant no encontrado" });
     res.json(item);
   });
 
   app.get(api.tenants.listByOwner.path, isAuthenticated, async (req: any, res) => {
-    const userId = req.user?.claims?.sub;
+    const userId = (req.session as any).userId;
     const items = await storage.getTenantsForUser(userId);
     res.json(items);
   });

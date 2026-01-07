@@ -6,8 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
-import { useEffect } from "react";
 import LandingPage from "@/pages/LandingPage";
+import LoginPage from "@/pages/LoginPage";
 
 // Pages
 import TenantSelection from "@/pages/TenantSelection";
@@ -19,7 +19,7 @@ import Niif from "@/pages/Niif";
 
 function Router() {
   const { user, isLoading } = useAuth();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
 
   if (isLoading) {
     return (
@@ -29,9 +29,22 @@ function Router() {
     );
   }
 
+  // Proteger rutas - redirigir a login si no está autenticado
+  if (!user && location !== "/" && location !== "/login") {
+    setLocation("/login");
+    return null;
+  }
+
+  // Si está autenticado en landing, redirigir a /app
+  if (user && location === "/") {
+    setLocation("/app");
+    return null;
+  }
+
   return (
     <Switch>
       <Route path="/" component={LandingPage} />
+      <Route path="/login" component={LoginPage} />
       <Route path="/app" component={TenantSelection} />
       <Route path=":tenantId/dashboard" component={Dashboard} />
       <Route path=":tenantId/cuentas" component={PlanCuentas} />
