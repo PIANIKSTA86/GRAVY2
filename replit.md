@@ -28,10 +28,10 @@ Preferred communication style: Simple, everyday language.
 - **Build**: esbuild for production bundling with selective dependency bundling
 
 ### Data Storage
-- **Database**: PostgreSQL via node-postgres (pg)
+- **Database**: MySQL via mysql2
 - **ORM**: Drizzle ORM with drizzle-zod for schema-to-validation integration
 - **Migrations**: Drizzle Kit for schema push operations
-- **Session Storage**: PostgreSQL-backed sessions via connect-pg-simple
+- **Session Storage**: MySQL-backed sessions via express-mysql-session
 
 ### Multi-Tenant Design
 - Single shared database with `tenant_id` field on all accounting tables
@@ -51,10 +51,10 @@ Preferred communication style: Simple, everyday language.
 - **Storage Interface**: `IStorage` interface in `server/storage.ts` for data access abstraction
 - **Path Aliases**: `@/` for client code, `@shared/` for shared code
 
-## External Dependencies
+### External Dependencies
 
 ### Database
-- **PostgreSQL**: Primary data store, requires `DATABASE_URL` environment variable
+- **MySQL**: Primary data store, requires `DATABASE_URL` environment variable (e.g. `mysql://user:pass@host:3306/db`)
 
 ### Authentication
 - **Replit Auth**: OpenID Connect provider at `https://replit.com/oidc`

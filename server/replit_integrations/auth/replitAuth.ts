@@ -5,8 +5,9 @@ import passport from "passport";
 import session from "express-session";
 import type { Express, RequestHandler } from "express";
 import memoize from "memoizee";
-import connectPg from "connect-pg-simple";
+import MySQLStoreFactory from "express-mysql-session";
 import { authStorage } from "./storage";
+import { pool } from "../../db";
 
 const getOidcConfig = memoize(
   async () => {
@@ -19,14 +20,25 @@ const getOidcConfig = memoize(
 );
 
 export function getSession() {
-  const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
-  const pgStore = connectPg(session);
-  const sessionStore = new pgStore({
-    conString: process.env.DATABASE_URL,
-    createTableIfMissing: false,
-    ttl: sessionTtl,
-    tableName: "sessions",
-  });
+  const sessionTtl = 7 * 24 * 60 * 60; // 1 week in seconds
+  const isProduction = process.env.NODE_ENV === "production";
+  const MySQLStore = MySQLStoreFactory(session as any);
+  const basePool = (pool as any).pool ?? pool;
+  const sessionStore = new MySQLStore(
+    {
+      expiration: sessionTtl,
+      createDatabaseTable: false,
+      schema: {
+        tableName: "sessions",
+        columnNames: {
+          session_id: "sid",
+          expires: "expire",
+          data: "sess",
+        },
+      },
+    },
+    basePool,
+  );
   return session({
     secret: process.env.SESSION_SECRET!,
     store: sessionStore,
@@ -34,8 +46,10 @@ export function getSession() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,
+      // In local dev we serve over http, so the cookie must be non-secure
+      secure: isProduction,
       maxAge: sessionTtl,
+      sameSite: isProduction ? "lax" : "lax",
     },
   });
 }
@@ -61,6 +75,31 @@ async function upsertUser(claims: any) {
 }
 
 export async function setupAuth(app: Express) {
+  // Fast path for local development without external OIDC.
+  if (process.env.DEV_AUTH_BYPASS === "true") {
+    app.use((req, _res, next) => {
+      (req as any).user = (req as any).user ?? {};
+      (req as any).user.claims = (req as any).user.claims ?? {
+        sub: "dev-user",
+        email: "dev@example.com",
+      };
+      (req as any).isAuthenticated = () => true;
+      next();
+    });
+
+    // Provide minimal login/logout endpoints to avoid 404s in dev bypass
+    app.get("/api/login", (_req, res) => {
+      res.redirect("/app");
+    });
+
+    app.get("/api/logout", (req, res) => {
+      req.logout?.(() => res.redirect("/"));
+      if (!req.logout) res.redirect("/");
+    });
+
+    return;
+  }
+
   app.set("trust proxy", 1);
   app.use(getSession());
   app.use(passport.initialize());
@@ -113,24 +152,41 @@ export async function setupAuth(app: Express) {
   app.get("/api/callback", (req, res, next) => {
     ensureStrategy(req.hostname);
     passport.authenticate(`replitauth:${req.hostname}`, {
-      successReturnToOrRedirect: "/",
+      successReturnToOrRedirect: "/app",
       failureRedirect: "/api/login",
     })(req, res, next);
   });
 
   app.get("/api/logout", (req, res) => {
+    const returnTo = typeof req.query.returnTo === "string" ? req.query.returnTo : "/";
+
+    // In dev bypass we just redirect without hitting OIDC
+    if (process.env.DEV_AUTH_BYPASS === "true") {
+      req.logout?.(() => res.redirect(returnTo));
+      return;
+    }
+
     req.logout(() => {
-      res.redirect(
-        client.buildEndSessionUrl(config, {
-          client_id: process.env.REPL_ID!,
-          post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
-        }).href
-      );
+      const postLogoutUrl = `${req.protocol}://${req.hostname}${returnTo}`;
+      const endSessionUrl = client.buildEndSessionUrl(config, {
+        client_id: process.env.REPL_ID!,
+        post_logout_redirect_uri: postLogoutUrl,
+      }).href;
+      res.redirect(endSessionUrl);
     });
   });
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
+  if (process.env.DEV_AUTH_BYPASS === "true") {
+    req.user = req.user ?? {} as any;
+    (req.user as any).claims = (req.user as any).claims ?? {
+      sub: "dev-user",
+      email: "dev@example.com",
+    };
+    return next();
+  }
+
   const user = req.user as any;
 
   if (!req.isAuthenticated() || !user.expires_at) {

@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { useEffect } from "react";
+import LandingPage from "@/pages/LandingPage";
 
 // Pages
 import TenantSelection from "@/pages/TenantSelection";
@@ -28,18 +29,15 @@ function Router() {
     );
   }
 
-  // Si no hay usuario, redirigir a la selección de tenant (o login implícito de Replit)
-  // Replit Auth manejará la redirección al login si intentamos acceder a una ruta protegida
-  // Pero aquí aseguramos que el estado del frontend sea consistente
-
   return (
     <Switch>
-      <Route path="/" component={TenantSelection} />
-      <Route path="/:tenantId/dashboard" component={Dashboard} />
-      <Route path="/:tenantId/cuentas" component={PlanCuentas} />
-      <Route path="/:tenantId/terceros" component={Terceros} />
-      <Route path="/:tenantId/asientos" component={Asientos} />
-      <Route path="/:tenantId/niif" component={Niif} />
+      <Route path="/" component={LandingPage} />
+      <Route path="/app" component={TenantSelection} />
+      <Route path=":tenantId/dashboard" component={Dashboard} />
+      <Route path=":tenantId/cuentas" component={PlanCuentas} />
+      <Route path=":tenantId/terceros" component={Terceros} />
+      <Route path=":tenantId/asientos" component={Asientos} />
+      <Route path=":tenantId/niif" component={Niif} />
       <Route component={NotFound} />
     </Switch>
   );

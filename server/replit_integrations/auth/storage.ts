@@ -16,17 +16,24 @@ class AuthStorage implements IAuthStorage {
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
-    const [user] = await db
+    if (!userData.id) {
+      throw new Error("User id is required for upsert");
+    }
+
+    await db
       .insert(users)
       .values(userData)
-      .onConflictDoUpdate({
-        target: users.id,
+      .onDuplicateKeyUpdate({
         set: {
           ...userData,
           updatedAt: new Date(),
         },
-      })
-      .returning();
+      });
+
+    const user = await this.getUser(userData.id);
+    if (!user) {
+      throw new Error("Failed to upsert user");
+    }
     return user;
   }
 }

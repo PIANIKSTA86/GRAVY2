@@ -136,46 +136,8 @@ export async function registerRoutes(
     }
   });
 
-  // Seed Data (if empty)
-  const existingTenants = await storage.getTenants();
-  if (existingTenants.length === 0) {
-    const tenant = await storage.createTenant({
-      nombre: "Empresa Demo S.A.S.",
-      tipoEmpresa: "S.A.S.",
-      grupoNiif: "2",
-      monedaFuncional: "COP",
-      responsableContable: "Juan Perez",
-      ownerId: null
-    });
-
-    await storage.createPlanCuenta({
-      tenantId: tenant.id,
-      codigo: "1105",
-      nombre: "Caja",
-      nivel: 4,
-      naturaleza: "D",
-      permiteTercero: false,
-      permiteCentroCosto: false
-    });
-
-    await storage.createPlanCuenta({
-      tenantId: tenant.id,
-      codigo: "1110",
-      nombre: "Bancos",
-      nivel: 4,
-      naturaleza: "D",
-      permiteTercero: false,
-      permiteCentroCosto: false
-    });
-    
-    await storage.createTercero({
-      tenantId: tenant.id,
-      identificacion: "900123456",
-      nombre: "Proveedor Ejemplo Ltda",
-      tipo: "Proveedor",
-      parteRelacionada: false
-    });
-  }
+  // Nota: Los datos de seed ahora se cargan con el script: npm run db:seed
+  // Ya no se cargan automáticamente al iniciar el servidor
 
   return httpServer;
 }

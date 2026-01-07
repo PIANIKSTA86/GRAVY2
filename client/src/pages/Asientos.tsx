@@ -31,13 +31,13 @@ export default function Asientos() {
   const form = useForm<AsientoForm>({
     resolver: zodResolver(createAsientoCompletoSchema.omit({ tenantId: true })),
     defaultValues: {
-      fecha: new Date().toISOString().split("T")[0],
+      fecha: new Date(),
       tipoComprobante: "Diario",
       numero: "",
       descripcion: "",
       lineas: [
-        { debito: "0", credito: "0" }, // Initial line
-        { debito: "0", credito: "0" }  // Second line for balance
+        { cuentaId: 0, debito: "0", credito: "0" }, // Initial line
+        { cuentaId: 0, debito: "0", credito: "0" }  // Second line for balance
       ]
     }
   });
@@ -123,7 +123,7 @@ export default function Asientos() {
               <div className="space-y-4">
                  <div className="flex items-center justify-between">
                    <h3 className="font-bold text-slate-900">Detalle del Movimiento</h3>
-                   <button type="button" onClick={() => append({ debito: "0", credito: "0" })} className="text-sm text-blue-600 font-medium hover:underline">
+                   <button type="button" onClick={() => append({ cuentaId: 0, debito: "0", credito: "0" })} className="text-sm text-blue-600 font-medium hover:underline">
                      + Agregar Línea
                    </button>
                  </div>

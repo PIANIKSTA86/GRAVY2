@@ -4,6 +4,19 @@ import { isAuthenticated } from "./replitAuth";
 
 // Register auth-specific routes
 export function registerAuthRoutes(app: Express): void {
+  if (process.env.DEV_AUTH_BYPASS === "true") {
+    app.get("/api/auth/user", async (_req: any, res) => {
+      res.json({
+        id: "dev-user",
+        email: "dev@example.com",
+        firstName: "Dev",
+        lastName: "User",
+        profileImageUrl: null,
+      });
+    });
+    return;
+  }
+
   // Get current authenticated user
   app.get("/api/auth/user", isAuthenticated, async (req: any, res) => {
     try {

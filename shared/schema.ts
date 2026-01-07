@@ -1,56 +1,56 @@
-import { pgTable, text, serial, integer, boolean, timestamp, numeric, date, index, varchar } from "drizzle-orm/pg-core";
+import { mysqlTable, text, int, boolean, timestamp, decimal, date, index, varchar, bigint } from "drizzle-orm/mysql-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations, sql } from "drizzle-orm";
 
 // (IMPORTANT) Mandatory for Replit Auth
-export const sessions = pgTable(
+export const sessions = mysqlTable(
   "sessions",
   {
-    sid: varchar("sid").primaryKey(),
-    sess: jsonb("sess").notNull(),
-    expire: timestamp("expire").notNull(),
+    sid: varchar("sid", { length: 255 }).primaryKey(),
+    sess: text("sess").notNull(),
+    expire: bigint("expire", { mode: "number" }).notNull(),
   },
-  (table) => [index("IDX_session_expire").on(table.expire)]
+  (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-function jsonb(name: string) {
-  return text(name); // Use text for simplicity if jsonb helper is causing issues in this environment's drizzle-orm version
-}
-
 // (IMPORTANT) Mandatory for Replit Auth
-export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  email: varchar("email").unique(),
-  firstName: varchar("first_name"),
-  lastName: varchar("last_name"),
-  profileImageUrl: varchar("profile_image_url"),
+export const users = mysqlTable("users", {
+  id: varchar("id", { length: 255 }).primaryKey().default(sql`(UUID())`),
+  email: varchar("email", { length: 255 }).unique(),
+  firstName: varchar("first_name", { length: 255 }),
+  lastName: varchar("last_name", { length: 255 }),
+  profileImageUrl: varchar("profile_image_url", { length: 255 }),
   createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
 });
 
 // 1. Tenants (Empresas)
-export const tenants = pgTable("tenants", {
-  id: serial("id").primaryKey(),
+export const tenants = mysqlTable("tenants", {
+  id: int("id").autoincrement().primaryKey(),
   nombre: text("nombre").notNull(),
   tipoEmpresa: text("tipo_empresa").notNull(),
   grupoNiif: text("grupo_niif").notNull(),
   monedaFuncional: text("moneda_funcional").default("COP").notNull(),
   responsableContable: text("responsable_contable"),
-  ownerId: varchar("owner_id").references(() => users.id),
+  ownerId: varchar("owner_id", { length: 255 }).references(() => users.id),
   fechaCreacion: timestamp("fecha_creacion").defaultNow(),
 });
 
 // Tabla para asociar usuarios a empresas
-export const tenantUsers = pgTable("tenant_users", {
-  id: serial("id").primaryKey(),
-  tenantId: integer("tenant_id").references(() => tenants.id).notNull(),
-  userId: varchar("user_id").references(() => users.id).notNull(),
-  role: text("role").default("viewer").notNull(),
-  fechaAsociacion: timestamp("fecha_asociacion").defaultNow(),
-}, (table) => ({
-  tenantUserIdx: index("idx_tenant_user").on(table.tenantId, table.userId),
-}));
+export const tenantUsers = mysqlTable(
+  "tenant_users",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    tenantId: int("tenant_id").references(() => tenants.id).notNull(),
+    userId: varchar("user_id", { length: 255 }).references(() => users.id).notNull(),
+    role: text("role").default("viewer").notNull(),
+    fechaAsociacion: timestamp("fecha_asociacion").defaultNow(),
+  },
+  (table) => ({
+    tenantUserIdx: index("idx_tenant_user").on(table.tenantId, table.userId),
+  }),
+);
 
 export const tenantsRelations = relations(tenants, ({ many, one }) => ({
   planCuentas: many(planCuentas),
@@ -75,23 +75,27 @@ export const tenantUsersRelations = relations(tenantUsers, ({ one }) => ({
 }));
 
 // 2. Plan de Cuentas
-export const planCuentas = pgTable("plan_cuentas", {
-  id: serial("id").primaryKey(),
-  tenantId: integer("tenant_id").references(() => tenants.id).notNull(),
-  codigo: text("codigo").notNull(),
-  nombre: text("nombre").notNull(),
-  nivel: integer("nivel").notNull(),
-  padreId: integer("padre_id"),
-  naturaleza: text("naturaleza").notNull(),
-  permiteTercero: boolean("permite_tercero").default(false),
-  permiteCentroCosto: boolean("permite_centro_costo").default(false),
-  categoriaNiif: text("categoria_niif"),
-  metodoMedicion: text("metodo_medicion"),
-  requiereDeterioro: boolean("requiere_deterioro").default(false),
-}, (table) => ({
-  tenantIdx: index("idx_plan_cuentas_tenant").on(table.tenantId),
-  codigoIdx: index("idx_plan_cuentas_codigo").on(table.codigo),
-}));
+export const planCuentas = mysqlTable(
+  "plan_cuentas",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    tenantId: int("tenant_id").references(() => tenants.id).notNull(),
+    codigo: text("codigo").notNull(),
+    nombre: text("nombre").notNull(),
+    nivel: int("nivel").notNull(),
+    padreId: int("padre_id"),
+    naturaleza: text("naturaleza").notNull(),
+    permiteTercero: boolean("permite_tercero").default(false),
+    permiteCentroCosto: boolean("permite_centro_costo").default(false),
+    categoriaNiif: text("categoria_niif"),
+    metodoMedicion: text("metodo_medicion"),
+    requiereDeterioro: boolean("requiere_deterioro").default(false),
+  },
+  (table) => ({
+    tenantIdx: index("idx_plan_cuentas_tenant").on(table.tenantId),
+    codigoIdx: index("idx_plan_cuentas_codigo").on(table.codigo),
+  }),
+);
 
 export const planCuentasRelations = relations(planCuentas, ({ one, many }) => ({
   tenant: one(tenants, {
@@ -109,80 +113,100 @@ export const planCuentasRelations = relations(planCuentas, ({ one, many }) => ({
 }));
 
 // 3. Terceros
-export const terceros = pgTable("terceros", {
-  id: serial("id").primaryKey(),
-  tenantId: integer("tenant_id").references(() => tenants.id).notNull(),
-  identificacion: text("identificacion").notNull(),
-  nombre: text("nombre").notNull(),
-  tipo: text("tipo").notNull(),
-  vinculoEconomico: text("vinculo_economico"),
-  parteRelacionada: boolean("parte_relacionada").default(false),
-}, (table) => ({
-  tenantIdx: index("idx_terceros_tenant").on(table.tenantId),
-}));
+export const terceros = mysqlTable(
+  "terceros",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    tenantId: int("tenant_id").references(() => tenants.id).notNull(),
+    identificacion: text("identificacion").notNull(),
+    nombre: text("nombre").notNull(),
+    tipo: text("tipo").notNull(),
+    vinculoEconomico: text("vinculo_economico"),
+    parteRelacionada: boolean("parte_relacionada").default(false),
+  },
+  (table) => ({
+    tenantIdx: index("idx_terceros_tenant").on(table.tenantId),
+  }),
+);
 
 // 4. Centros de Costo
-export const centrosCosto = pgTable("centros_costo", {
-  id: serial("id").primaryKey(),
-  tenantId: integer("tenant_id").references(() => tenants.id).notNull(),
-  codigo: text("codigo").notNull(),
-  nombre: text("nombre").notNull(),
-  categoriaDistribucion: text("categoria_distribucion"),
-}, (table) => ({
-  tenantIdx: index("idx_cc_tenant").on(table.tenantId),
-}));
+export const centrosCosto = mysqlTable(
+  "centros_costo",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    tenantId: int("tenant_id").references(() => tenants.id).notNull(),
+    codigo: text("codigo").notNull(),
+    nombre: text("nombre").notNull(),
+    categoriaDistribucion: text("categoria_distribucion"),
+  },
+  (table) => ({
+    tenantIdx: index("idx_cc_tenant").on(table.tenantId),
+  }),
+);
 
 // 5. Periodos Contables
-export const periodosContables = pgTable("periodos_contables", {
-  id: serial("id").primaryKey(),
-  tenantId: integer("tenant_id").references(() => tenants.id).notNull(),
-  fechaInicio: date("fecha_inicio").notNull(),
-  fechaFin: date("fecha_fin").notNull(),
-  cerrado: boolean("cerrado").default(false),
-  cierreNiifRealizado: boolean("cierre_niif_realizado").default(false),
-}, (table) => ({
-  tenantIdx: index("idx_periodos_tenant").on(table.tenantId),
-}));
+export const periodosContables = mysqlTable(
+  "periodos_contables",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    tenantId: int("tenant_id").references(() => tenants.id).notNull(),
+    fechaInicio: date("fecha_inicio").notNull(),
+    fechaFin: date("fecha_fin").notNull(),
+    cerrado: boolean("cerrado").default(false),
+    cierreNiifRealizado: boolean("cierre_niif_realizado").default(false),
+  },
+  (table) => ({
+    tenantIdx: index("idx_periodos_tenant").on(table.tenantId),
+  }),
+);
 
 // 6. Asientos (Cabecera)
-export const asientos = pgTable("asientos", {
-  id: serial("id").primaryKey(),
-  tenantId: integer("tenant_id").references(() => tenants.id).notNull(),
-  fecha: date("fecha").notNull(),
-  tipoComprobante: text("tipo_comprobante").notNull(),
-  numero: text("numero").notNull(),
-  descripcion: text("descripcion").notNull(),
-  terceroId: integer("tercero_id").references(() => terceros.id),
-  periodoId: integer("periodo_id").references(() => periodosContables.id),
-  estado: text("estado").default("Borrador").notNull(),
-  eventoNiif: text("evento_niif"),
-  moduloOrigen: text("modulo_origen").default("CONTABILIDAD"),
-  fechaCreacion: timestamp("fecha_creacion").defaultNow(),
-  usuarioCreacion: text("usuario_creacion"),
-}, (table) => ({
-  tenantIdx: index("idx_asientos_tenant").on(table.tenantId),
-  fechaIdx: index("idx_asientos_fecha").on(table.fecha),
-}));
+export const asientos = mysqlTable(
+  "asientos",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    tenantId: int("tenant_id").references(() => tenants.id).notNull(),
+    fecha: date("fecha").notNull(),
+    tipoComprobante: text("tipo_comprobante").notNull(),
+    numero: text("numero").notNull(),
+    descripcion: text("descripcion").notNull(),
+    terceroId: int("tercero_id").references(() => terceros.id),
+    periodoId: int("periodo_id").references(() => periodosContables.id),
+    estado: text("estado").default("Borrador").notNull(),
+    eventoNiif: text("evento_niif"),
+    moduloOrigen: text("modulo_origen").default("CONTABILIDAD"),
+    fechaCreacion: timestamp("fecha_creacion").defaultNow(),
+    usuarioCreacion: text("usuario_creacion"),
+  },
+  (table) => ({
+    tenantIdx: index("idx_asientos_tenant").on(table.tenantId),
+    fechaIdx: index("idx_asientos_fecha").on(table.fecha),
+  }),
+);
 
 // 7. Líneas de Asiento (Detalle)
-export const lineasAsiento = pgTable("lineas_asiento", {
-  id: serial("id").primaryKey(),
-  asientoId: integer("asiento_id").references(() => asientos.id).notNull(),
-  tenantId: integer("tenant_id").references(() => tenants.id).notNull(),
-  cuentaId: integer("cuenta_id").references(() => planCuentas.id).notNull(),
-  debito: numeric("debito", { precision: 15, scale: 2 }).default("0").notNull(),
-  credito: numeric("credito", { precision: 15, scale: 2 }).default("0").notNull(),
-  centroCostoId: integer("centro_costo_id").references(() => centrosCosto.id),
-  terceroId: integer("tercero_id").references(() => terceros.id),
-  referenciaDoc: text("referencia_doc"),
-  detalle: text("detalle"),
-  productoId: integer("producto_id"),
-  cantidad: numeric("cantidad", { precision: 10, scale: 2 }),
-  costoUnitario: numeric("costo_unitario", { precision: 15, scale: 2 }),
-}, (table) => ({
-  asientoIdx: index("idx_lineas_asiento").on(table.asientoId),
-  tenantCuentaIdx: index("idx_lineas_tenant_cuenta").on(table.tenantId, table.cuentaId),
-}));
+export const lineasAsiento = mysqlTable(
+  "lineas_asiento",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    asientoId: int("asiento_id").references(() => asientos.id).notNull(),
+    tenantId: int("tenant_id").references(() => tenants.id).notNull(),
+    cuentaId: int("cuenta_id").references(() => planCuentas.id).notNull(),
+    debito: decimal("debito", { precision: 15, scale: 2 }).default("0").notNull(),
+    credito: decimal("credito", { precision: 15, scale: 2 }).default("0").notNull(),
+    centroCostoId: int("centro_costo_id").references(() => centrosCosto.id),
+    terceroId: int("tercero_id").references(() => terceros.id),
+    referenciaDoc: text("referencia_doc"),
+    detalle: text("detalle"),
+    productoId: int("producto_id"),
+    cantidad: decimal("cantidad", { precision: 10, scale: 2 }),
+    costoUnitario: decimal("costo_unitario", { precision: 15, scale: 2 }),
+  },
+  (table) => ({
+    asientoIdx: index("idx_lineas_asiento").on(table.asientoId),
+    tenantCuentaIdx: index("idx_lineas_tenant_cuenta").on(table.tenantId, table.cuentaId),
+  }),
+);
 
 export const lineasAsientoRelations = relations(lineasAsiento, ({ one }) => ({
   asiento: one(asientos, {
@@ -212,9 +236,9 @@ export const asientosRelations = relations(asientos, ({ many, one }) => ({
 }));
 
 // 8. Políticas NIIF
-export const niifPoliticas = pgTable("niif_politicas", {
-  id: serial("id").primaryKey(),
-  tenantId: integer("tenant_id").references(() => tenants.id).notNull(),
+export const niifPoliticas = mysqlTable("niif_politicas", {
+  id: int("id").autoincrement().primaryKey(),
+  tenantId: int("tenant_id").references(() => tenants.id).notNull(),
   modulo: text("modulo").notNull(),
   metodoMedicion: text("metodo_medicion").notNull(),
   cuentasAsociadas: text("cuentas_asociadas"),

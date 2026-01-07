@@ -8,6 +8,7 @@ import { Building2, Plus, ArrowRight, Loader2, LogOut, User } from "lucide-react
 import { 
   Dialog, 
   DialogContent, 
+  DialogDescription,
   DialogHeader, 
   DialogTitle, 
   DialogTrigger 
@@ -97,6 +98,9 @@ export default function TenantSelection() {
             <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Crear Nueva Empresa</DialogTitle>
+                <DialogDescription>
+                  Completa los datos básicos para registrar una nueva empresa en el sistema.
+                </DialogDescription>
               </DialogHeader>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-4">
                 <div className="space-y-2">

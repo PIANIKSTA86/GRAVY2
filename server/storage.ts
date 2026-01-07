@@ -4,7 +4,7 @@ import {
   type InsertTenant, type InsertPlanCuenta, type InsertTercero, type CreateAsientoCompleto, type InsertNiifPolitica,
   type Tenant, type PlanCuenta, type Tercero, type Asiento, type LineaAsiento, type NiifPolitica
 } from "@shared/schema";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   // Tenants
@@ -55,6 +55,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTenants(userId?: string): Promise<Tenant[]> {
+    if (process.env.DEV_AUTH_BYPASS === "true") {
+      return await db.select().from(tenants);
+    }
+
     if (userId) {
       // Return tenants where the user is an owner or has an association
       const owned = await db.select().from(tenants).where(eq(tenants.ownerId, userId));
@@ -78,7 +82,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTenant(tenant: InsertTenant): Promise<Tenant> {
-    const [newTenant] = await db.insert(tenants).values(tenant).returning();
+    const result = await db.insert(tenants).values(tenant);
+    const insertedId = Number((result as any).insertId);
+    const [newTenant] = await db.select().from(tenants).where(eq(tenants.id, insertedId));
+    if (!newTenant) throw new Error("Failed to create tenant");
     return newTenant;
   }
 
@@ -87,7 +94,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createTercero(tercero: InsertTercero): Promise<Tercero> {
-    const [newTercero] = await db.insert(terceros).values(tercero).returning();
+    const result = await db.insert(terceros).values(tercero);
+    const insertedId = Number((result as any).insertId);
+    const [newTercero] = await db.select().from(terceros).where(eq(terceros.id, insertedId));
+    if (!newTercero) throw new Error("Failed to create tercero");
     return newTercero;
   }
 
@@ -96,7 +106,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createPlanCuenta(cuenta: InsertPlanCuenta): Promise<PlanCuenta> {
-    const [newCuenta] = await db.insert(planCuentas).values(cuenta).returning();
+    const result = await db.insert(planCuentas).values(cuenta);
+    const insertedId = Number((result as any).insertId);
+    const [newCuenta] = await db.select().from(planCuentas).where(eq(planCuentas.id, insertedId));
+    if (!newCuenta) throw new Error("Failed to create plan de cuentas entry");
     return newCuenta;
   }
 
@@ -108,13 +121,19 @@ export class DatabaseStorage implements IStorage {
     return await db.transaction(async (tx) => {
       // 1. Insert header
       const { lineas, ...headerData } = asientoCompleto;
-      const [newAsiento] = await tx.insert(asientos).values(headerData).returning();
+      const asientoResult = await tx.insert(asientos).values(headerData);
+      const asientoId = Number((asientoResult as any).insertId);
+      const [newAsiento] = await tx
+        .select()
+        .from(asientos)
+        .where(eq(asientos.id, asientoId));
+      if (!newAsiento) throw new Error("Failed to create asiento");
 
       // 2. Insert lines
       if (lineas && lineas.length > 0) {
         const lineasWithIds = lineas.map(linea => ({
           ...linea,
-          asientoId: newAsiento.id,
+          asientoId,
           tenantId: headerData.tenantId,
         }));
         await tx.insert(lineasAsiento).values(lineasWithIds);
@@ -129,7 +148,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createNiifPolitica(politica: InsertNiifPolitica): Promise<NiifPolitica> {
-    const [newPolitica] = await db.insert(niifPoliticas).values(politica).returning();
+    const result = await db.insert(niifPoliticas).values(politica);
+    const insertedId = Number((result as any).insertId);
+    const [newPolitica] = await db.select().from(niifPoliticas).where(eq(niifPoliticas.id, insertedId));
+    if (!newPolitica) throw new Error("Failed to create NIIF policy");
     return newPolitica;
   }
 }
