@@ -126,6 +126,46 @@ export const planCuentasRelations = relations(planCuentas, ({ one, many }) => ({
   }),
 }));
 
+// CATÁLOGOS GEOGRÁFICOS (DANE e ISO)
+// Países (ISO 3166-1 alpha-2)
+export const paises = mysqlTable(
+  "paises",
+  {
+    codigo: varchar("codigo", { length: 2 }).primaryKey(), // ISO 3166-1 alpha-2 (CO, US, etc.)
+    nombre: varchar("nombre", { length: 100 }).notNull(),
+    activo: boolean("activo").default(true).notNull(),
+  }
+);
+
+// Departamentos de Colombia (DANE)
+export const departamentos = mysqlTable(
+  "departamentos",
+  {
+    codigo: varchar("codigo", { length: 2 }).primaryKey(), // Código DANE departamento (05, 11, 91, etc.)
+    nombre: varchar("nombre", { length: 100 }).notNull(),
+    paisCodigo: varchar("pais_codigo", { length: 2 }).references(() => paises.codigo).notNull().default("CO"),
+    activo: boolean("activo").default(true).notNull(),
+  },
+  (table) => ({
+    paisIdx: index("idx_departamentos_pais").on(table.paisCodigo),
+  })
+);
+
+// Municipios de Colombia (DANE)
+export const municipios = mysqlTable(
+  "municipios",
+  {
+    codigo: varchar("codigo", { length: 5 }).primaryKey(), // Código DANE municipio (05001, 11001, etc.)
+    nombre: varchar("nombre", { length: 100 }).notNull(),
+    departamentoCodigo: varchar("departamento_codigo", { length: 2 }).references(() => departamentos.codigo).notNull(),
+    codigoPostal: varchar("codigo_postal", { length: 10 }),
+    activo: boolean("activo").default(true).notNull(),
+  },
+  (table) => ({
+    dptoIdx: index("idx_municipios_dpto").on(table.departamentoCodigo),
+  })
+);
+
 // 3. Terceros
 export const terceros = mysqlTable(
   "terceros",
@@ -163,6 +203,9 @@ export const terceros = mysqlTable(
     
     // CONTACTO
     direccion: text("direccion"),
+    paisCodigo: varchar("pais_codigo", { length: 2 }).references(() => paises.codigo).default("CO"),
+    departamentoCodigo: varchar("departamento_codigo", { length: 2 }).references(() => departamentos.codigo),
+    municipioCodigo: varchar("municipio_codigo", { length: 5 }).references(() => municipios.codigo),
     email: text("email"),
     telefono1: text("telefono1"),
     telefono2: text("telefono2"),
@@ -180,6 +223,8 @@ export const terceros = mysqlTable(
     tenantEstadoIdx: index("idx_terceros_tenant_estado").on(table.tenantId, table.estado),
     emailIdx: index("idx_terceros_email").on(table.email),
     tipoIdx: index("idx_terceros_tipo").on(table.tipo),
+    paisIdx: index("idx_terceros_pais").on(table.paisCodigo),
+    dptoIdx: index("idx_terceros_dpto").on(table.departamentoCodigo),
   }),
 );
 
@@ -319,6 +364,9 @@ export const insertTerceroSchema = createInsertSchema(terceros)
     telefono1: z.string().max(20).optional().or(z.literal('')),
     telefono2: z.string().max(20).optional().or(z.literal('')),
     tarifaRetefuente: z.number().min(0).max(100).optional(),
+    paisCodigo: z.string().length(2).optional(),
+    departamentoCodigo: z.string().length(2).optional(),
+    municipioCodigo: z.string().length(5).optional(),
   })
   .refine(
     (data) => data.tipoPersona === 'persona_natural' 
@@ -341,6 +389,9 @@ export type Tenant = typeof tenants.$inferSelect;
 export type InsertTenant = z.infer<typeof insertTenantSchema>;
 export type PlanCuenta = typeof planCuentas.$inferSelect;
 export type InsertPlanCuenta = z.infer<typeof insertPlanCuentasSchema>;
+export type Pais = typeof paises.$inferSelect;
+export type Departamento = typeof departamentos.$inferSelect;
+export type Municipio = typeof municipios.$inferSelect;
 export type Tercero = typeof terceros.$inferSelect;
 export type InsertTercero = z.infer<typeof insertTerceroSchema>;
 export type CentroCosto = typeof centrosCosto.$inferSelect;

@@ -9,7 +9,10 @@ import {
   planCuentas,
   terceros,
   asientos,
-  niifPoliticas
+  niifPoliticas,
+  paises,
+  departamentos,
+  municipios
 } from './schema';
 
 export const errorSchemas = {
@@ -132,6 +135,35 @@ export const api = {
         },
       }
     }
+  },
+  catalogos: {
+    paises: {
+      method: 'GET' as const,
+      path: '/api/catalogos/paises',
+      responses: {
+        200: z.array(z.custom<typeof paises.$inferSelect>()),
+      },
+    },
+    departamentos: {
+      method: 'GET' as const,
+      path: '/api/catalogos/departamentos',
+      query: z.object({
+        pais: z.string().length(2).optional(),
+      }).optional(),
+      responses: {
+        200: z.array(z.custom<typeof departamentos.$inferSelect>()),
+      },
+    },
+    municipios: {
+      method: 'GET' as const,
+      path: '/api/catalogos/municipios',
+      query: z.object({
+        departamento: z.string().length(2).optional(),
+      }).optional(),
+      responses: {
+        200: z.array(z.custom<typeof municipios.$inferSelect>()),
+      },
+    },
   }
 };
 

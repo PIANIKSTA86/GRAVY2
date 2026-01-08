@@ -1,8 +1,10 @@
 import { db } from "./db";
 import { 
   tenants, planCuentas, terceros, centrosCosto, periodosContables, asientos, lineasAsiento, niifPoliticas, tenantUsers,
+  paises, departamentos, municipios,
   type InsertTenant, type InsertPlanCuenta, type InsertTercero, type CreateAsientoCompleto, type InsertNiifPolitica,
-  type Tenant, type PlanCuenta, type Tercero, type Asiento, type LineaAsiento, type NiifPolitica
+  type Tenant, type PlanCuenta, type Tercero, type Asiento, type LineaAsiento, type NiifPolitica,
+  type Pais, type Departamento, type Municipio
 } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
@@ -27,6 +29,11 @@ export interface IStorage {
   // NIIF
   getNiifPoliticas(tenantId: number): Promise<NiifPolitica[]>;
   createNiifPolitica(politica: InsertNiifPolitica): Promise<NiifPolitica>;
+
+  // Catálogos Geográficos
+  getPaises(): Promise<Pais[]>;
+  getDepartamentos(paisCodigo?: string): Promise<Departamento[]>;
+  getMunicipios(departamentoCodigo?: string): Promise<Municipio[]>;
 
   // User-Tenant Associations
   getTenantsForUser(userId: string): Promise<Tenant[]>;
@@ -149,6 +156,27 @@ export class DatabaseStorage implements IStorage {
     const [newPolitica] = await db.select().from(niifPoliticas).where(eq(niifPoliticas.id, insertedId));
     if (!newPolitica) throw new Error("Failed to create NIIF policy");
     return newPolitica;
+  }
+
+  // Catálogos Geográficos
+  async getPaises(): Promise<Pais[]> {
+    return await db.select().from(paises).where(eq(paises.activo, true));
+  }
+
+  async getDepartamentos(paisCodigo?: string): Promise<Departamento[]> {
+    if (paisCodigo) {
+      return await db.select().from(departamentos)
+        .where(eq(departamentos.paisCodigo, paisCodigo));
+    }
+    return await db.select().from(departamentos).where(eq(departamentos.activo, true));
+  }
+
+  async getMunicipios(departamentoCodigo?: string): Promise<Municipio[]> {
+    if (departamentoCodigo) {
+      return await db.select().from(municipios)
+        .where(eq(municipios.departamentoCodigo, departamentoCodigo));
+    }
+    return await db.select().from(municipios).where(eq(municipios.activo, true));
   }
 }
 

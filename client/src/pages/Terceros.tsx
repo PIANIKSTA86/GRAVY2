@@ -1,6 +1,7 @@
 import Layout from "@/components/Layout";
 import { useParams } from "wouter";
 import { useTerceros, useCreateTercero } from "@/hooks/use-accounting";
+import { usePaises, useDepartamentos, useMunicipios } from "@/hooks/use-location";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertTerceroSchema } from "@shared/schema";
@@ -16,8 +17,10 @@ import {
 import { z } from "zod";
 import { Loading } from "@/components/ui/Loading";
 import { 
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger 
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter 
 } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState, useMemo } from "react";
 import { Plus, Search, ChevronLeft, ChevronRight, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -30,13 +33,15 @@ export default function Terceros() {
   const { data: terceros, isLoading } = useTerceros(id);
   const createTercero = useCreateTercero(id);
   const [open, setOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [selectedTercero, setSelectedTercero] = useState<import("@shared/schema").Tercero | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
   const { toast } = useToast();
 
-    const form = useForm<TerceroForm>({
-      resolver: zodResolver(insertTerceroSchema),
+  const form = useForm<TerceroForm>({
+    resolver: zodResolver(insertTerceroSchema),
     defaultValues: {
       tipoIdentificacion: '31',
       identificacion: "",
@@ -54,12 +59,22 @@ export default function Terceros() {
       parteRelacionada: false,
       tipo: "Cliente",
       direccion: "",
+      paisCodigo: "CO",
+      departamentoCodigo: undefined,
+      municipioCodigo: undefined,
       email: "",
       telefono1: "",
       telefono2: "",
       estado: 'activo',
     }
   });
+
+  // Catálogos de ubicación
+  const { data: paises } = usePaises();
+  const paisSelected = form.watch("paisCodigo");
+  const dptoSelected = form.watch("departamentoCodigo");
+  const { data: departamentos } = useDepartamentos(paisSelected);
+  const { data: municipios } = useMunicipios(dptoSelected);
 
   const onSubmit = async (data: TerceroForm) => {
     try {
@@ -122,158 +137,224 @@ export default function Terceros() {
               <Plus className="h-4 w-4" /> Nuevo Tercero
             </button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-3xl w-full max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Registrar Nuevo Tercero</DialogTitle>
             </DialogHeader>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-2">
-              {/* Tipo de persona y documento */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Tipo de Persona</label>
-                  <select {...form.register("tipoPersona")} className="input-field">
-                    <option value="persona_natural">Persona Natural</option>
-                    <option value="persona_juridica">Persona Jurídica</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Tipo Identificación (DIAN)</label>
-                  <select {...form.register("tipoIdentificacion")} className="input-field">
-                    {OPCIONES_TIPO_IDENTIFICACION.map(opt => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Identificación</label>
-                  <input {...form.register("identificacion")} className="input-field font-mono" placeholder="900123456" />
-                  {form.formState.errors.identificacion && <p className="text-xs text-red-500">{form.formState.errors.identificacion.message}</p>}
-                </div>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="mt-2">
+              <Tabs defaultValue="identificacion">
+                <TabsList className="w-full">
+                  <TabsTrigger value="identificacion" className="flex-1">Identificación</TabsTrigger>
+                  <TabsTrigger value="datos" className="flex-1">Datos</TabsTrigger>
+                  <TabsTrigger value="tributario" className="flex-1">Tributario</TabsTrigger>
+                  <TabsTrigger value="contacto" className="flex-1">Contacto</TabsTrigger>
+                </TabsList>
+
+                <ScrollArea className="max-h-[65vh] mt-3">
+                  <TabsContent value="identificacion" className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Tipo de Persona</label>
+                        <select {...form.register("tipoPersona")} className="input-field">
+                          <option value="persona_natural">Persona Natural</option>
+                          <option value="persona_juridica">Persona Jurídica</option>
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Tipo Identificación (DIAN)</label>
+                        <select {...form.register("tipoIdentificacion")} className="input-field">
+                          {OPCIONES_TIPO_IDENTIFICACION.map(opt => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Identificación</label>
+                        <input {...form.register("identificacion")} className="input-field font-mono" placeholder="900123456" />
+                        {form.formState.errors.identificacion && <p className="text-xs text-red-500">{form.formState.errors.identificacion.message}</p>}
+                      </div>
+                    </div>
+                    {requiereDV(form.watch("tipoIdentificacion")) && (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-2 md:col-start-3">
+                          <label className="text-sm font-medium">DV (Dígito de Verificación)</label>
+                          <input {...form.register("dv")} className="input-field w-full" placeholder="0" maxLength={1} />
+                        </div>
+                      </div>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="datos" className="space-y-4">
+                    {form.watch("tipoPersona") === 'persona_natural' ? (
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Nombre</label>
+                          <input {...form.register("nombre")} className="input-field" placeholder="Juan" />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Apellidos</label>
+                          <input {...form.register("apellidos")} className="input-field" placeholder="Pérez" />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Nombre Completo</label>
+                          <input {...form.register("nombreCompleto")} className="input-field" placeholder="Juan Pérez" />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Razón Social</label>
+                          <input {...form.register("razonSocial")} className="input-field" placeholder="Empresa S.A.S." />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Nombre Comercial / Completo</label>
+                          <input {...form.register("nombreCompleto")} className="input-field" placeholder="Empresa S.A.S." />
+                        </div>
+                      </div>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="tributario" className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Régimen Tributario</label>
+                        <select {...form.register("tipoRegimen")} className="input-field">
+                          {OPCIONES_TIPO_REGIMEN.map(opt => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-2 flex items-center gap-4 pt-6">
+                        <label className="flex items-center gap-2 text-sm text-slate-600">
+                          <input type="checkbox" {...form.register("esAutorretenedor")} className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                          Autorretenedor
+                        </label>
+                        <label className="flex items-center gap-2 text-sm text-slate-600">
+                          <input type="checkbox" {...form.register("retefuente")} className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                          Retefuente
+                        </label>
+                      </div>
+                      {form.watch("retefuente") && (
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">Tarifa Retefuente (%)</label>
+                          <input type="number" step="0.01" {...form.register("tarifaRetefuente", { valueAsNumber: true })} className="input-field" placeholder="2.5" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Tipo</label>
+                        <select {...form.register("tipo")} className="input-field">
+                          <option value="Cliente">Cliente</option>
+                          <option value="Proveedor">Proveedor</option>
+                          <option value="Empleado">Empleado</option>
+                          <option value="Otro">Otro</option>
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Vínculo Económico</label>
+                        <input {...form.register("vinculoEconomico")} className="input-field" placeholder="Proveedor habitual" />
+                      </div>
+                      <div className="flex items-center pt-6">
+                        <label className="flex items-center gap-2 text-sm text-slate-600">
+                          <input type="checkbox" {...form.register("parteRelacionada")} className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                          Parte Relacionada (NIIF)
+                        </label>
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="contacto" className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="text-sm font-medium">Dirección</label>
+                        <input {...form.register("direccion")} className="input-field" placeholder="Calle 10 # 20-30" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Email</label>
+                        <input type="email" {...form.register("email")} className="input-field" placeholder="contacto@empresa.com" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Estado</label>
+                        <select {...form.register("estado")} className="input-field">
+                          <option value="activo">Activo</option>
+                          <option value="inactivo">Inactivo</option>
+                          <option value="suspendido">Suspendido</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Ubicación Geográfica */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">País</label>
+                        <select 
+                          {...form.register("paisCodigo")} 
+                          className="input-field"
+                          onChange={(e) => {
+                            form.setValue("paisCodigo", e.target.value);
+                            form.setValue("departamentoCodigo", undefined);
+                            form.setValue("municipioCodigo", undefined);
+                          }}
+                        >
+                          <option value="">Seleccione...</option>
+                          {paises?.map(pais => (
+                            <option key={pais.codigo} value={pais.codigo}>{pais.nombre}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Departamento</label>
+                        <select 
+                          {...form.register("departamentoCodigo")}
+                          className="input-field"
+                          disabled={!paisSelected || paisSelected !== 'CO'}
+                          onChange={(e) => {
+                            form.setValue("departamentoCodigo", e.target.value || undefined);
+                            form.setValue("municipioCodigo", undefined);
+                          }}
+                        >
+                          <option value="">Seleccione...</option>
+                          {departamentos?.map(dpto => (
+                            <option key={dpto.codigo} value={dpto.codigo}>{dpto.nombre}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Municipio</label>
+                        <select 
+                          {...form.register("municipioCodigo")}
+                          className="input-field"
+                          disabled={!dptoSelected}
+                        >
+                          <option value="">Seleccione...</option>
+                          {municipios?.map(mpio => (
+                            <option key={mpio.codigo} value={mpio.codigo}>{mpio.nombre}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Teléfono 1</label>
+                        <input {...form.register("telefono1")} className="input-field" placeholder="+57 300 123 4567" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Teléfono 2</label>
+                        <input {...form.register("telefono2")} className="input-field" placeholder="+57 1 555 1234" />
+                      </div>
+                    </div>
+                  </TabsContent>
+                </ScrollArea>
+              </Tabs>
+              <div className="sticky bottom-0 bg-white pt-3 mt-3 border-t">
+                <DialogFooter>
+                  <button type="submit" disabled={createTercero.isPending} className="btn-primary">
+                    {createTercero.isPending ? "Guardando..." : "Guardar Tercero"}
+                  </button>
+                </DialogFooter>
               </div>
-
-              {/* DV si aplica */}
-              {requiereDV(form.watch("tipoIdentificacion")) && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2 md:col-start-3">
-                    <label className="text-sm font-medium">DV (Dígito de Verificación)</label>
-                    <input {...form.register("dv")} className="input-field w-full" placeholder="0" maxLength={1} />
-                  </div>
-                </div>
-              )}
-
-              {/* Datos de nombre */}
-              {form.watch("tipoPersona") === 'persona_natural' ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Nombre</label>
-                    <input {...form.register("nombre")} className="input-field" placeholder="Juan" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Apellidos</label>
-                    <input {...form.register("apellidos")} className="input-field" placeholder="Pérez" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Nombre Completo</label>
-                    <input {...form.register("nombreCompleto")} className="input-field" placeholder="Juan Pérez" />
-                  </div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Razón Social</label>
-                    <input {...form.register("razonSocial")} className="input-field" placeholder="Empresa S.A.S." />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Nombre Comercial / Completo</label>
-                    <input {...form.register("nombreCompleto")} className="input-field" placeholder="Empresa S.A.S." />
-                  </div>
-                </div>
-              )}
-
-              {/* Clasificación Tributaria */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Régimen Tributario</label>
-                  <select {...form.register("tipoRegimen")} className="input-field">
-                    {OPCIONES_TIPO_REGIMEN.map(opt => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-2 flex items-center gap-4 pt-6">
-                  <label className="flex items-center gap-2 text-sm text-slate-600">
-                    <input type="checkbox" {...form.register("esAutorretenedor")} className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
-                    Autorretenedor
-                  </label>
-                  <label className="flex items-center gap-2 text-sm text-slate-600">
-                    <input type="checkbox" {...form.register("retefuente")} className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
-                    Retefuente
-                  </label>
-                </div>
-                {form.watch("retefuente") && (
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Tarifa Retefuente (%)</label>
-                    <input type="number" step="0.01" {...form.register("tarifaRetefuente", { valueAsNumber: true })} className="input-field" placeholder="2.5" />
-                  </div>
-                )}
-              </div>
-
-              {/* Clasificación y NIIF */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Tipo</label>
-                  <select {...form.register("tipo")} className="input-field">
-                    <option value="Cliente">Cliente</option>
-                    <option value="Proveedor">Proveedor</option>
-                    <option value="Empleado">Empleado</option>
-                    <option value="Otro">Otro</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Vínculo Económico</label>
-                  <input {...form.register("vinculoEconomico")} className="input-field" placeholder="Proveedor habitual" />
-                </div>
-                <div className="flex items-center pt-6">
-                  <label className="flex items-center gap-2 text-sm text-slate-600">
-                    <input type="checkbox" {...form.register("parteRelacionada")} className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
-                    Parte Relacionada (NIIF)
-                  </label>
-                </div>
-              </div>
-
-              {/* Contacto y Estado */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="space-y-2 md:col-span-2">
-                  <label className="text-sm font-medium">Dirección</label>
-                  <input {...form.register("direccion")} className="input-field" placeholder="Calle 10 # 20-30" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Email</label>
-                  <input type="email" {...form.register("email")} className="input-field" placeholder="contacto@empresa.com" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Estado</label>
-                  <select {...form.register("estado")} className="input-field">
-                    <option value="activo">Activo</option>
-                    <option value="inactivo">Inactivo</option>
-                    <option value="suspendido">Suspendido</option>
-                  </select>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Teléfono 1</label>
-                  <input {...form.register("telefono1")} className="input-field" placeholder="+57 300 123 4567" />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Teléfono 2</label>
-                  <input {...form.register("telefono2")} className="input-field" placeholder="+57 1 555 1234" />
-                </div>
-              </div>
-
-              <button type="submit" disabled={createTercero.isPending} className="w-full btn-primary mt-2">
-                {createTercero.isPending ? "Guardando..." : "Guardar Tercero"}
-              </button>
             </form>
           </DialogContent>
         </Dialog>
@@ -382,7 +463,10 @@ export default function Terceros() {
                         )}
                       </td>
                       <td className="px-6 py-2 text-center">
-                        <button className="text-blue-600 hover:text-blue-700 text-xs font-medium">
+                        <button 
+                          className="text-blue-600 hover:text-blue-700 text-xs font-medium"
+                          onClick={() => { setSelectedTercero(tercero); setDetailsOpen(true); }}
+                        >
                           Ver detalles
                         </button>
                       </td>
@@ -456,6 +540,100 @@ export default function Terceros() {
           </div>
         )}
       </div>
+
+      {/* Modal de Detalles */}
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="sm:max-w-3xl w-full max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detalles del Tercero</DialogTitle>
+          </DialogHeader>
+          {selectedTercero ? (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <p className="text-xs text-slate-500">Tipo de Persona</p>
+                  <p className="text-sm font-medium">{selectedTercero.tipoPersona}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Tipo Identificación</p>
+                  <p className="text-sm font-medium">{selectedTercero.tipoIdentificacion}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Identificación</p>
+                  <p className="text-sm font-medium font-mono">{formatearIdentificacion(selectedTercero.identificacion, selectedTercero.tipoIdentificacion, selectedTercero.dv ?? undefined)}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-slate-500">Nombre / Razón Social</p>
+                  <p className="text-sm font-medium">{selectedTercero.nombreCompleto || selectedTercero.razonSocial}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Régimen</p>
+                  <p className="text-sm font-medium">{getDescripcionCortaRegimen(selectedTercero.tipoRegimen || '')}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <p className="text-xs text-slate-500">Tipo</p>
+                  <p className="text-sm font-medium">{selectedTercero.tipo || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Vínculo Económico</p>
+                  <p className="text-sm font-medium">{selectedTercero.vinculoEconomico || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Parte Relacionada</p>
+                  <p className="text-sm font-medium">{selectedTercero.parteRelacionada ? 'Sí' : 'No'}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="md:col-span-2">
+                  <p className="text-xs text-slate-500">Dirección</p>
+                  <p className="text-sm font-medium">{selectedTercero.direccion || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Email</p>
+                  <p className="text-sm font-medium">{selectedTercero.email || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Estado</p>
+                  <p className="text-sm font-medium">{selectedTercero.estado}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <p className="text-xs text-slate-500">País</p>
+                  <p className="text-sm font-medium">{selectedTercero.paisCodigo || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Departamento</p>
+                  <p className="text-sm font-medium">{selectedTercero.departamentoCodigo || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Municipio</p>
+                  <p className="text-sm font-medium">{selectedTercero.municipioCodigo || '-'}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-slate-500">Teléfono 1</p>
+                  <p className="text-sm font-medium">{selectedTercero.telefono1 || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500">Teléfono 2</p>
+                  <p className="text-sm font-medium">{selectedTercero.telefono2 || '-'}</p>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }

@@ -139,6 +139,24 @@ export async function registerRoutes(
     }
   });
 
+  // Catálogos Geográficos (públicos - no requieren autenticación)
+  app.get(api.catalogos.paises.path, async (_req, res) => {
+    const items = await storage.getPaises();
+    res.json(items);
+  });
+
+  app.get(api.catalogos.departamentos.path, async (req, res) => {
+    const paisCodigo = req.query.pais as string | undefined;
+    const items = await storage.getDepartamentos(paisCodigo);
+    res.json(items);
+  });
+
+  app.get(api.catalogos.municipios.path, async (req, res) => {
+    const departamentoCodigo = req.query.departamento as string | undefined;
+    const items = await storage.getMunicipios(departamentoCodigo);
+    res.json(items);
+  });
+
   // Nota: Los datos de seed ahora se cargan con el script: npm run db:seed
   // Ya no se cargan automáticamente al iniciar el servidor
 
