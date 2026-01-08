@@ -4,6 +4,15 @@ import { useTerceros, useCreateTercero } from "@/hooks/use-accounting";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertTerceroSchema } from "@shared/schema";
+import { 
+  OPCIONES_TIPO_IDENTIFICACION, 
+  requiereDV, 
+  formatearIdentificacion 
+} from "@shared/tipos-identificacion-dian";
+import { 
+  OPCIONES_TIPO_REGIMEN, 
+  getDescripcionCortaRegimen 
+} from "@shared/tipos-regimen-dian";
 import { z } from "zod";
 import { Loading } from "@/components/ui/Loading";
 import { 
@@ -26,19 +35,45 @@ export default function Terceros() {
   const [itemsPerPage, setItemsPerPage] = useState(25);
   const { toast } = useToast();
 
-  const form = useForm<TerceroForm>({
-    resolver: zodResolver(insertTerceroSchema.omit({ tenantId: true })),
+    const form = useForm<TerceroForm>({
+      resolver: zodResolver(insertTerceroSchema),
     defaultValues: {
+      tipoIdentificacion: '31',
       identificacion: "",
+      dv: "",
+      tipoPersona: 'persona_juridica',
       nombre: "",
-      tipo: "Cliente",
+      apellidos: "",
+      nombreCompleto: "",
+      razonSocial: "",
+      tipoRegimen: '48',
+      esAutorretenedor: false,
+      retefuente: false,
+      tarifaRetefuente: undefined,
+      vinculoEconomico: "",
       parteRelacionada: false,
+      tipo: "Cliente",
+      direccion: "",
+      email: "",
+      telefono1: "",
+      telefono2: "",
+      estado: 'activo',
     }
   });
 
   const onSubmit = async (data: TerceroForm) => {
     try {
-      await createTercero.mutateAsync(data);
+      // Ajustes previos: construir nombreCompleto si falta
+      const payload: TerceroForm = {
+        ...data,
+        nombreCompleto: data.nombreCompleto || (data.tipoPersona === 'persona_natural' 
+          ? [data.nombre, data.apellidos].filter(Boolean).join(' ') 
+          : (data.razonSocial || '')),
+        dv: requiereDV(data.tipoIdentificacion) ? (data.dv || '') : undefined,
+        tarifaRetefuente: data.retefuente ? data.tarifaRetefuente : undefined,
+      } as TerceroForm;
+
+      await createTercero.mutateAsync(payload);
       setOpen(false);
       form.reset();
       toast({ title: "Tercero creado exitosamente" });
@@ -47,10 +82,15 @@ export default function Terceros() {
     }
   };
 
-  const filteredTerceros = terceros?.filter(t => 
-    t.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    t.identificacion.includes(searchTerm)
-  );
+  const filteredTerceros = terceros?.filter(t => {
+    const term = searchTerm.toLowerCase();
+    return (
+      (t.nombreCompleto?.toLowerCase().includes(term) ?? false) ||
+      (t.razonSocial?.toLowerCase().includes(term) ?? false) ||
+      (t.email?.toLowerCase().includes(term) ?? false) ||
+      t.identificacion.includes(searchTerm)
+    );
+  });
 
   // Paginación
   const totalPages = Math.ceil((filteredTerceros?.length || 0) / itemsPerPage);
@@ -87,19 +127,99 @@ export default function Terceros() {
               <DialogTitle>Registrar Nuevo Tercero</DialogTitle>
             </DialogHeader>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Identificación (NIT/CC)</label>
-                <input {...form.register("identificacion")} className="input-field font-mono" placeholder="900123456" />
-                {form.formState.errors.identificacion && <p className="text-xs text-red-500">{form.formState.errors.identificacion.message}</p>}
+              {/* Tipo de persona y documento */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Tipo de Persona</label>
+                  <select {...form.register("tipoPersona")} className="input-field">
+                    <option value="persona_natural">Persona Natural</option>
+                    <option value="persona_juridica">Persona Jurídica</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Tipo Identificación (DIAN)</label>
+                  <select {...form.register("tipoIdentificacion")} className="input-field">
+                    {OPCIONES_TIPO_IDENTIFICACION.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Identificación</label>
+                  <input {...form.register("identificacion")} className="input-field font-mono" placeholder="900123456" />
+                  {form.formState.errors.identificacion && <p className="text-xs text-red-500">{form.formState.errors.identificacion.message}</p>}
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Razón Social / Nombre</label>
-                <input {...form.register("nombre")} className="input-field" placeholder="Empresa SAS" />
-                {form.formState.errors.nombre && <p className="text-xs text-red-500">{form.formState.errors.nombre.message}</p>}
+              {/* DV si aplica */}
+              {requiereDV(form.watch("tipoIdentificacion")) && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2 md:col-start-3">
+                    <label className="text-sm font-medium">DV (Dígito de Verificación)</label>
+                    <input {...form.register("dv")} className="input-field w-full" placeholder="0" maxLength={1} />
+                  </div>
+                </div>
+              )}
+
+              {/* Datos de nombre */}
+              {form.watch("tipoPersona") === 'persona_natural' ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Nombre</label>
+                    <input {...form.register("nombre")} className="input-field" placeholder="Juan" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Apellidos</label>
+                    <input {...form.register("apellidos")} className="input-field" placeholder="Pérez" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Nombre Completo</label>
+                    <input {...form.register("nombreCompleto")} className="input-field" placeholder="Juan Pérez" />
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Razón Social</label>
+                    <input {...form.register("razonSocial")} className="input-field" placeholder="Empresa S.A.S." />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Nombre Comercial / Completo</label>
+                    <input {...form.register("nombreCompleto")} className="input-field" placeholder="Empresa S.A.S." />
+                  </div>
+                </div>
+              )}
+
+              {/* Clasificación Tributaria */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Régimen Tributario</label>
+                  <select {...form.register("tipoRegimen")} className="input-field">
+                    {OPCIONES_TIPO_REGIMEN.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2 flex items-center gap-4 pt-6">
+                  <label className="flex items-center gap-2 text-sm text-slate-600">
+                    <input type="checkbox" {...form.register("esAutorretenedor")} className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                    Autorretenedor
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-slate-600">
+                    <input type="checkbox" {...form.register("retefuente")} className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+                    Retefuente
+                  </label>
+                </div>
+                {form.watch("retefuente") && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Tarifa Retefuente (%)</label>
+                    <input type="number" step="0.01" {...form.register("tarifaRetefuente", { valueAsNumber: true })} className="input-field" placeholder="2.5" />
+                  </div>
+                )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              {/* Clasificación y NIIF */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Tipo</label>
                   <select {...form.register("tipo")} className="input-field">
@@ -109,6 +229,10 @@ export default function Terceros() {
                     <option value="Otro">Otro</option>
                   </select>
                 </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Vínculo Económico</label>
+                  <input {...form.register("vinculoEconomico")} className="input-field" placeholder="Proveedor habitual" />
+                </div>
                 <div className="flex items-center pt-6">
                   <label className="flex items-center gap-2 text-sm text-slate-600">
                     <input type="checkbox" {...form.register("parteRelacionada")} className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
@@ -117,7 +241,37 @@ export default function Terceros() {
                 </div>
               </div>
 
-              <button type="submit" disabled={createTercero.isPending} className="w-full btn-primary mt-4">
+              {/* Contacto y Estado */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-2 md:col-span-2">
+                  <label className="text-sm font-medium">Dirección</label>
+                  <input {...form.register("direccion")} className="input-field" placeholder="Calle 10 # 20-30" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Email</label>
+                  <input type="email" {...form.register("email")} className="input-field" placeholder="contacto@empresa.com" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Estado</label>
+                  <select {...form.register("estado")} className="input-field">
+                    <option value="activo">Activo</option>
+                    <option value="inactivo">Inactivo</option>
+                    <option value="suspendido">Suspendido</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Teléfono 1</label>
+                  <input {...form.register("telefono1")} className="input-field" placeholder="+57 300 123 4567" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Teléfono 2</label>
+                  <input {...form.register("telefono2")} className="input-field" placeholder="+57 1 555 1234" />
+                </div>
+              </div>
+
+              <button type="submit" disabled={createTercero.isPending} className="w-full btn-primary mt-2">
                 {createTercero.isPending ? "Guardando..." : "Guardar Tercero"}
               </button>
             </form>
@@ -169,8 +323,11 @@ export default function Terceros() {
                   <tr>
                     <th className="px-6 py-2 text-left font-medium text-slate-600">Identificación</th>
                     <th className="px-6 py-2 text-left font-medium text-slate-600">Nombre / Razón Social</th>
+                    <th className="px-6 py-2 text-center font-medium text-slate-600">Régimen</th>
+                    <th className="px-6 py-2 text-center font-medium text-slate-600">Email</th>
+                    <th className="px-6 py-2 text-center font-medium text-slate-600">Estado</th>
                     <th className="px-6 py-2 text-center font-medium text-slate-600">Tipo</th>
-                    <th className="px-6 py-2 text-center font-medium text-slate-600">Estado NIIF</th>
+                    <th className="px-6 py-2 text-center font-medium text-slate-600">NIIF</th>
                     <th className="px-6 py-2 text-center font-medium text-slate-600">Acciones</th>
                   </tr>
                 </thead>
@@ -182,11 +339,33 @@ export default function Terceros() {
                           <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
                             <User className="h-3.5 w-3.5" />
                           </div>
-                          <span className="font-mono text-sm font-medium text-slate-700">{tercero.identificacion}</span>
+                          <div className="flex flex-col">
+                            <span className="font-mono text-sm font-medium text-slate-700">
+                              {formatearIdentificacion(tercero.identificacion, tercero.tipoIdentificacion, tercero.dv ?? undefined)}
+                            </span>
+                            <span className="text-[10px] text-slate-400">Tipo {tercero.tipoIdentificacion}</span>
+                          </div>
                         </div>
                       </td>
                       <td className="px-6 py-2">
-                        <span className="font-medium text-sm text-slate-900">{tercero.nombre}</span>
+                        <span className="font-medium text-sm text-slate-900">{tercero.nombreCompleto || tercero.razonSocial || '-'}</span>
+                      </td>
+                      <td className="px-6 py-2 text-center">
+                        <span className="px-2.5 py-0.5 bg-slate-100 text-slate-700 text-xs font-semibold rounded-full">
+                          {getDescripcionCortaRegimen(tercero.tipoRegimen || '')}
+                        </span>
+                      </td>
+                      <td className="px-6 py-2 text-center">
+                        <span className="text-xs text-slate-700">{tercero.email || '-'}</span>
+                      </td>
+                      <td className="px-6 py-2 text-center">
+                        <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full ${
+                          tercero.estado === 'activo' ? 'bg-green-100 text-green-700' :
+                          tercero.estado === 'inactivo' ? 'bg-slate-100 text-slate-700' :
+                          'bg-amber-100 text-amber-700'
+                        }`}>
+                          {tercero.estado}
+                        </span>
                       </td>
                       <td className="px-6 py-2 text-center">
                         <span className="px-2.5 py-0.5 bg-slate-100 text-slate-700 text-xs font-semibold uppercase rounded-full">

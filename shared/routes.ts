@@ -70,7 +70,7 @@ export const api = {
     create: {
       method: 'POST' as const,
       path: '/api/:tenantId/terceros',
-      input: insertTerceroSchema.omit({ tenantId: true }),
+      input: insertTerceroSchema,
       responses: {
         201: z.custom<typeof terceros.$inferSelect>(),
         400: errorSchemas.validation,

@@ -132,14 +132,54 @@ export const terceros = mysqlTable(
   {
     id: int("id").autoincrement().primaryKey(),
     tenantId: int("tenant_id").references(() => tenants.id).notNull(),
+    
+    // IDENTIFICACIÓN
+    tipoIdentificacion: text("tipo_identificacion").notNull().default("31"),
+    // Códigos DIAN Colombia: 11-Registro civil, 12-TI, 13-CC, 21/22-CE, 
+    // 31-NIT, 41-Pasaporte, 42-DIE, 47-PEP, 48-PPT, 91-NUIP
     identificacion: text("identificacion").notNull(),
-    nombre: text("nombre").notNull(),
-    tipo: text("tipo").notNull(),
+    dv: text("dv"), // Dígito de verificación
+    
+    // INFORMACIÓN PERSONAL/EMPRESARIAL
+    tipoPersona: text("tipo_persona").notNull().default("persona_juridica"),
+    // persona_natural, persona_juridica
+    nombre: text("nombre"),
+    apellidos: text("apellidos"),
+    nombreCompleto: text("nombre_completo").notNull(),
+    razonSocial: text("razon_social"),
+    
+    // CLASIFICACIÓN TRIBUTARIA
+    tipoRegimen: text("tipo_regimen").default("48").notNull(),
+    // Códigos DIAN: 33-Imp.Consumo, 47-RST, 48-Resp.IVA, 49-No Resp.IVA, 50-RST+Consumo
+    esAutorretenedor: boolean("es_autorretenedor").default(false),
+    retefuente: boolean("retefuente").default(false),
+    tarifaRetefuente: decimal("tarifa_retefuente", { precision: 5, scale: 2 }),
+    
+    // CLASIFICACIÓN
     vinculoEconomico: text("vinculo_economico"),
     parteRelacionada: boolean("parte_relacionada").default(false),
+    tipo: text("tipo"),
+    // Cliente, Proveedor, Empleado, Accionista, etc.
+    
+    // CONTACTO
+    direccion: text("direccion"),
+    email: text("email"),
+    telefono1: text("telefono1"),
+    telefono2: text("telefono2"),
+    
+    // ESTADO
+    estado: text("estado").default("activo").notNull(),
+    // activo, inactivo, suspendido
+    
+    // AUDITORÍA
+    fechaCreacion: timestamp("fecha_creacion").defaultNow(),
+    fechaActualizacion: timestamp("fecha_actualizacion").defaultNow().onUpdateNow(),
   },
   (table) => ({
     tenantIdx: index("idx_terceros_tenant").on(table.tenantId),
+    tenantEstadoIdx: index("idx_terceros_tenant_estado").on(table.tenantId, table.estado),
+    emailIdx: index("idx_terceros_email").on(table.email),
+    tipoIdx: index("idx_terceros_tipo").on(table.tipo),
   }),
 );
 
@@ -261,7 +301,35 @@ export const niifPoliticas = mysqlTable("niif_politicas", {
 // Esquemas de inserción
 export const insertTenantSchema = createInsertSchema(tenants).omit({ id: true, fechaCreacion: true });
 export const insertPlanCuentasSchema = createInsertSchema(planCuentas).omit({ id: true });
-export const insertTerceroSchema = createInsertSchema(terceros).omit({ id: true });
+
+// Schema mejorado para Terceros con validaciones de negocio
+export const insertTerceroSchema = createInsertSchema(terceros)
+  .omit({ id: true, tenantId: true, fechaCreacion: true, fechaActualizacion: true })
+  .extend({
+    tipoIdentificacion: z.enum(['11', '12', '13', '21', '22', '31', '41', '42', '47', '48', '91']),
+    // 11: Registro civil, 12: TI, 13: CC, 21/22: CE, 31: NIT, 
+    // 41: Pasaporte, 42: DIE, 47: PEP, 48: PPT, 91: NUIP
+    tipoPersona: z.enum(['persona_natural', 'persona_juridica']),
+    tipoRegimen: z.enum(['33', '47', '48', '49', '50']),
+    // 33: Imp.Consumo, 47: RST, 48: Resp.IVA, 49: No Resp.IVA, 50: RST+Consumo
+    estado: z.enum(['activo', 'inactivo', 'suspendido']),
+    identificacion: z.string().min(3).max(50).regex(/^[0-9A-Za-z-]+$/, "Solo números, letras y guiones"),
+    nombreCompleto: z.string().min(5).max(255),
+    email: z.string().email().optional().or(z.literal('')),
+    telefono1: z.string().max(20).optional().or(z.literal('')),
+    telefono2: z.string().max(20).optional().or(z.literal('')),
+    tarifaRetefuente: z.number().min(0).max(100).optional(),
+  })
+  .refine(
+    (data) => data.tipoPersona === 'persona_natural' 
+      ? (data.nombre && data.apellidos) || data.nombreCompleto
+      : data.razonSocial || data.nombreCompleto,
+    {
+      message: "Persona natural requiere nombre/apellidos. Persona jurídica requiere razón social",
+      path: ["nombreCompleto"],
+    }
+  );
+
 export const insertCentroCostoSchema = createInsertSchema(centrosCosto).omit({ id: true });
 export const insertPeriodoContableSchema = createInsertSchema(periodosContables).omit({ id: true });
 export const insertAsientoSchema = createInsertSchema(asientos).omit({ id: true, fechaCreacion: true });
