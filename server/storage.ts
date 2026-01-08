@@ -6,7 +6,7 @@ import {
   type Tenant, type PlanCuenta, type Tercero, type Asiento, type LineaAsiento, type NiifPolitica,
   type Pais, type Departamento, type Municipio
 } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 export interface IStorage {
   // Tenants
@@ -17,6 +17,8 @@ export interface IStorage {
   // Terceros
   getTerceros(tenantId: number): Promise<Tercero[]>;
   createTercero(tercero: InsertTercero): Promise<Tercero>;
+  updateTercero(id: number, tenantId: number, tercero: InsertTercero): Promise<Tercero>;
+  deleteTercero(id: number, tenantId: number): Promise<void>;
 
   // Plan Cuentas
   getPlanCuentas(tenantId: number): Promise<PlanCuenta[]>;
@@ -102,6 +104,21 @@ export class DatabaseStorage implements IStorage {
     const [newTercero] = await db.select().from(terceros).where(eq(terceros.id, insertedId));
     if (!newTercero) throw new Error("Failed to create tercero");
     return newTercero;
+  }
+
+  async updateTercero(id: number, tenantId: number, terceroInput: InsertTercero): Promise<Tercero> {
+    const [existing] = await db.select().from(terceros).where(and(eq(terceros.id, id), eq(terceros.tenantId, tenantId)));
+    if (!existing) throw new Error("not_found");
+    await db.update(terceros).set({ ...terceroInput }).where(and(eq(terceros.id, id), eq(terceros.tenantId, tenantId)));
+    const [updated] = await db.select().from(terceros).where(and(eq(terceros.id, id), eq(terceros.tenantId, tenantId)));
+    if (!updated) throw new Error("Failed to update tercero");
+    return updated;
+  }
+
+  async deleteTercero(id: number, tenantId: number): Promise<void> {
+    const [existing] = await db.select().from(terceros).where(and(eq(terceros.id, id), eq(terceros.tenantId, tenantId)));
+    if (!existing) throw new Error("not_found");
+    await db.delete(terceros).where(and(eq(terceros.id, id), eq(terceros.tenantId, tenantId)));
   }
 
   async getPlanCuentas(tenantId: number): Promise<PlanCuenta[]> {

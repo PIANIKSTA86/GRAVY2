@@ -73,6 +73,41 @@ export async function registerRoutes(
     }
   });
 
+  app.put(api.terceros.update.path, isAuthenticated, async (req, res) => {
+    try {
+      const tenantId = Number(req.params.tenantId);
+      const id = Number(req.params.id);
+      const input = api.terceros.update.input.parse(req.body);
+      const item = await storage.updateTercero(id, tenantId, { ...input, tenantId });
+      res.status(200).json(item);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        res.status(400).json({ message: err.errors[0].message });
+        return;
+      }
+      if ((err as Error).message === 'not_found') {
+        res.status(404).json({ message: "Tercero no encontrado" });
+        return;
+      }
+      throw err;
+    }
+  });
+
+  app.delete(api.terceros.delete.path, isAuthenticated, async (req, res) => {
+    try {
+      const tenantId = Number(req.params.tenantId);
+      const id = Number(req.params.id);
+      await storage.deleteTercero(id, tenantId);
+      res.status(204).send();
+    } catch (err) {
+      if ((err as Error).message === 'not_found') {
+        res.status(404).json({ message: "Tercero no encontrado" });
+        return;
+      }
+      throw err;
+    }
+  });
+
   // Plan Cuentas
   app.get(api.planCuentas.list.path, isAuthenticated, async (req, res) => {
     const tenantId = Number(req.params.tenantId);

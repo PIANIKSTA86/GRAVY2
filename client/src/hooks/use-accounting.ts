@@ -121,6 +121,50 @@ export function useCreateTercero(tenantId: number) {
   });
 }
 
+export function useUpdateTercero(tenantId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: { id: number; data: Omit<InsertTercero, "tenantId"> }) => {
+      const url = buildUrl(api.terceros.update.path, { tenantId, id: payload.id });
+      const res = await fetch(url, {
+        method: api.terceros.update.method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload.data),
+        credentials: "include",
+      });
+      if (!res.ok) {
+        if (res.status === 404) throw new Error("not_found");
+        throw new Error("Error updating tercero");
+      }
+      return api.terceros.update.responses[200].parse(await res.json());
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.terceros.list.path, tenantId] });
+    },
+  });
+}
+
+export function useDeleteTercero(tenantId: number) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const url = buildUrl(api.terceros.delete.path, { tenantId, id });
+      const res = await fetch(url, {
+        method: api.terceros.delete.method,
+        credentials: "include",
+      });
+      if (!res.ok) {
+        if (res.status === 404) throw new Error("not_found");
+        throw new Error("Error deleting tercero");
+      }
+      return null;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [api.terceros.list.path, tenantId] });
+    },
+  });
+}
+
 // ASIENTOS
 export function useAsientos(tenantId: number) {
   return useQuery({

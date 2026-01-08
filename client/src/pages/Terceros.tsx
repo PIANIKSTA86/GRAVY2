@@ -1,6 +1,6 @@
 import Layout from "@/components/Layout";
 import { useParams } from "wouter";
-import { useTerceros, useCreateTercero } from "@/hooks/use-accounting";
+import { useTerceros, useCreateTercero, useUpdateTercero, useDeleteTercero } from "@/hooks/use-accounting";
 import { usePaises, useDepartamentos, useMunicipios } from "@/hooks/use-location";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,7 +22,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useState, useMemo } from "react";
-import { Plus, Search, ChevronLeft, ChevronRight, User } from "lucide-react";
+import { Plus, Search, ChevronLeft, ChevronRight, User, Pencil, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 type TerceroForm = Omit<z.infer<typeof insertTerceroSchema>, "tenantId">;
@@ -32,42 +32,82 @@ export default function Terceros() {
   const id = Number(tenantId);
   const { data: terceros, isLoading } = useTerceros(id);
   const createTercero = useCreateTercero(id);
+  const updateTercero = useUpdateTercero(id);
+  const deleteTercero = useDeleteTercero(id);
   const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<"create" | "edit">("create");
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedTercero, setSelectedTercero] = useState<import("@shared/schema").Tercero | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(25);
   const { toast } = useToast();
+  const isSaving = createTercero.isPending || updateTercero.isPending;
+
+  const defaultValues = useMemo<TerceroForm>(() => ({
+    tipoIdentificacion: '31',
+    identificacion: "",
+    dv: "",
+    tipoPersona: 'persona_juridica',
+    nombre: "",
+    apellidos: "",
+    nombreCompleto: "",
+    razonSocial: "",
+    tipoRegimen: '48',
+    esAutorretenedor: false,
+    retefuente: false,
+    tarifaRetefuente: undefined,
+    vinculoEconomico: "",
+    parteRelacionada: false,
+    tipo: "cliente",
+    direccion: "",
+    paisCodigo: "CO",
+    departamentoCodigo: undefined,
+    municipioCodigo: undefined,
+    email: "",
+    telefono1: "",
+    telefono2: "",
+    estado: 'activo',
+  }), []);
 
   const form = useForm<TerceroForm>({
     resolver: zodResolver(insertTerceroSchema),
-    defaultValues: {
-      tipoIdentificacion: '31',
-      identificacion: "",
-      dv: "",
-      tipoPersona: 'persona_juridica',
-      nombre: "",
-      apellidos: "",
-      nombreCompleto: "",
-      razonSocial: "",
-      tipoRegimen: '48',
-      esAutorretenedor: false,
-      retefuente: false,
-      tarifaRetefuente: undefined,
-      vinculoEconomico: "",
-      parteRelacionada: false,
-      tipo: "Cliente",
-      direccion: "",
-      paisCodigo: "CO",
-      departamentoCodigo: undefined,
-      municipioCodigo: undefined,
-      email: "",
-      telefono1: "",
-      telefono2: "",
-      estado: 'activo',
-    }
+    defaultValues,
   });
+
+  const resetForm = () => {
+    setMode("create");
+    setSelectedTercero(null);
+    form.reset(defaultValues);
+  };
+
+  const fillFormFromTercero = (tercero: import("@shared/schema").Tercero) => {
+    form.reset({
+      tipoIdentificacion: tercero.tipoIdentificacion || '31',
+      identificacion: tercero.identificacion || "",
+      dv: tercero.dv ?? "",
+      tipoPersona: tercero.tipoPersona || 'persona_juridica',
+      nombre: tercero.nombre || "",
+      apellidos: tercero.apellidos || "",
+      nombreCompleto: tercero.nombreCompleto || "",
+      razonSocial: tercero.razonSocial || "",
+      tipoRegimen: tercero.tipoRegimen || '48',
+      esAutorretenedor: tercero.esAutorretenedor ?? false,
+      retefuente: tercero.retefuente ?? false,
+      tarifaRetefuente: tercero.tarifaRetefuente ? Number(tercero.tarifaRetefuente) : undefined,
+      vinculoEconomico: tercero.vinculoEconomico || "",
+      parteRelacionada: tercero.parteRelacionada ?? false,
+      tipo: tercero.tipo || "cliente",
+      direccion: tercero.direccion || "",
+      paisCodigo: tercero.paisCodigo || "CO",
+      departamentoCodigo: tercero.departamentoCodigo || undefined,
+      municipioCodigo: tercero.municipioCodigo || undefined,
+      email: tercero.email || "",
+      telefono1: tercero.telefono1 || "",
+      telefono2: tercero.telefono2 || "",
+      estado: tercero.estado || 'activo',
+    });
+  };
 
   // Catálogos de ubicación
   const { data: paises } = usePaises();
@@ -78,7 +118,6 @@ export default function Terceros() {
 
   const onSubmit = async (data: TerceroForm) => {
     try {
-      // Ajustes previos: construir nombreCompleto si falta
       const payload: TerceroForm = {
         ...data,
         nombreCompleto: data.nombreCompleto || (data.tipoPersona === 'persona_natural' 
@@ -88,12 +127,20 @@ export default function Terceros() {
         tarifaRetefuente: data.retefuente ? data.tarifaRetefuente : undefined,
       } as TerceroForm;
 
-      await createTercero.mutateAsync(payload);
+      if (mode === "edit" && selectedTercero) {
+        const updated = await updateTercero.mutateAsync({ id: selectedTercero.id, data: payload });
+        toast({ title: "Tercero actualizado" });
+        setSelectedTercero(updated);
+      } else {
+        await createTercero.mutateAsync(payload);
+        toast({ title: "Tercero creado exitosamente" });
+      }
+
       setOpen(false);
-      form.reset();
-      toast({ title: "Tercero creado exitosamente" });
+      resetForm();
     } catch (error) {
-      toast({ title: "Error al crear tercero", variant: "destructive" });
+      const message = mode === "edit" ? "Error al actualizar tercero" : "Error al crear tercero";
+      toast({ title: message, variant: "destructive" });
     }
   };
 
@@ -123,6 +170,29 @@ export default function Terceros() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleEdit = (tercero: import("@shared/schema").Tercero) => {
+    setMode("edit");
+    setSelectedTercero(tercero);
+    fillFormFromTercero(tercero);
+    setOpen(true);
+    setDetailsOpen(false);
+  };
+
+  const handleDelete = async (tercero: import("@shared/schema").Tercero) => {
+    const confirmDelete = window.confirm(`¿Eliminar ${tercero.nombreCompleto || tercero.razonSocial || 'tercero'}?`);
+    if (!confirmDelete) return;
+
+    try {
+      await deleteTercero.mutateAsync(tercero.id);
+      toast({ title: "Tercero eliminado" });
+      if (detailsOpen) setDetailsOpen(false);
+      if (selectedTercero?.id === tercero.id) setSelectedTercero(null);
+    } catch (error) {
+      const message = (error as Error).message === "not_found" ? "El tercero ya no existe" : "Error al eliminar tercero";
+      toast({ title: message, variant: "destructive" });
+    }
+  };
+
   return (
     <Layout tenantId={tenantId!}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
@@ -131,27 +201,39 @@ export default function Terceros() {
           <p className="text-slate-500">Administra clientes, proveedores y empleados.</p>
         </div>
 
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog
+          open={open}
+          onOpenChange={(nextOpen) => {
+            setOpen(nextOpen);
+            if (!nextOpen) resetForm();
+          }}
+        >
           <DialogTrigger asChild>
-            <button className="btn-primary gap-2">
+            <button
+              type="button"
+              className="btn-primary gap-2"
+              onClick={() => {
+                resetForm();
+                setMode("create");
+              }}
+            >
               <Plus className="h-4 w-4" /> Nuevo Tercero
             </button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-3xl w-full max-h-[85vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Registrar Nuevo Tercero</DialogTitle>
+              <DialogTitle>{mode === "edit" ? "Editar Tercero" : "Registrar Nuevo Tercero"}</DialogTitle>
             </DialogHeader>
             <form onSubmit={form.handleSubmit(onSubmit)} className="mt-2">
-              <Tabs defaultValue="identificacion">
+              <Tabs defaultValue="datos_basicos">
                 <TabsList className="w-full">
-                  <TabsTrigger value="identificacion" className="flex-1">Identificación</TabsTrigger>
-                  <TabsTrigger value="datos" className="flex-1">Datos</TabsTrigger>
-                  <TabsTrigger value="tributario" className="flex-1">Tributario</TabsTrigger>
+                  <TabsTrigger value="datos_basicos" className="flex-1">Datos básicos</TabsTrigger>
                   <TabsTrigger value="contacto" className="flex-1">Contacto</TabsTrigger>
+                  <TabsTrigger value="tributario" className="flex-1">Tributario</TabsTrigger>
                 </TabsList>
 
                 <ScrollArea className="max-h-[65vh] mt-3">
-                  <TabsContent value="identificacion" className="space-y-4">
+                  <TabsContent value="datos_basicos" className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <label className="text-sm font-medium">Tipo de Persona</label>
@@ -182,9 +264,7 @@ export default function Terceros() {
                         </div>
                       </div>
                     )}
-                  </TabsContent>
 
-                  <TabsContent value="datos" className="space-y-4">
                     {form.watch("tipoPersona") === 'persona_natural' ? (
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="space-y-2">
@@ -245,10 +325,12 @@ export default function Terceros() {
                       <div className="space-y-2">
                         <label className="text-sm font-medium">Tipo</label>
                         <select {...form.register("tipo")} className="input-field">
-                          <option value="Cliente">Cliente</option>
-                          <option value="Proveedor">Proveedor</option>
-                          <option value="Empleado">Empleado</option>
-                          <option value="Otro">Otro</option>
+                          <option value="cliente">Cliente</option>
+                          <option value="proveedor">Proveedor</option>
+                          <option value="empleado">Empleado</option>
+                          <option value="propietario">Propietario</option>
+                          <option value="acreedor">Acreedor</option>
+                          <option value="otro">Otro</option>
                         </select>
                       </div>
                       <div className="space-y-2">
@@ -350,8 +432,10 @@ export default function Terceros() {
               </Tabs>
               <div className="sticky bottom-0 bg-white pt-3 mt-3 border-t">
                 <DialogFooter>
-                  <button type="submit" disabled={createTercero.isPending} className="btn-primary">
-                    {createTercero.isPending ? "Guardando..." : "Guardar Tercero"}
+                  <button type="submit" disabled={isSaving} className="btn-primary">
+                    {mode === "edit"
+                      ? (isSaving ? "Guardando..." : "Guardar cambios")
+                      : (isSaving ? "Guardando..." : "Guardar Tercero")}
                   </button>
                 </DialogFooter>
               </div>
@@ -414,7 +498,11 @@ export default function Terceros() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {paginatedTerceros.map((tercero) => (
-                    <tr key={tercero.id} className="hover:bg-slate-50 transition-colors group">
+                    <tr 
+                      key={tercero.id} 
+                      className="hover:bg-slate-50 transition-colors group cursor-pointer"
+                      onClick={() => { setSelectedTercero(tercero); setDetailsOpen(true); }}
+                    >
                       <td className="px-6 py-2">
                         <div className="flex items-center gap-2">
                           <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
@@ -463,12 +551,22 @@ export default function Terceros() {
                         )}
                       </td>
                       <td className="px-6 py-2 text-center">
-                        <button 
-                          className="text-blue-600 hover:text-blue-700 text-xs font-medium"
-                          onClick={() => { setSelectedTercero(tercero); setDetailsOpen(true); }}
-                        >
-                          Ver detalles
-                        </button>
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            className="p-2 rounded-full hover:bg-slate-100 text-slate-600 hover:text-blue-700 transition-colors"
+                            title="Modificar"
+                            onClick={(e) => { e.stopPropagation(); handleEdit(tercero); }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button
+                            className="p-2 rounded-full hover:bg-slate-100 text-slate-600 hover:text-red-700 transition-colors"
+                            title="Eliminar"
+                            onClick={(e) => { e.stopPropagation(); handleDelete(tercero); }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

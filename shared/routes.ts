@@ -78,6 +78,24 @@ export const api = {
         201: z.custom<typeof terceros.$inferSelect>(),
         400: errorSchemas.validation,
       },
+    },
+    update: {
+      method: 'PUT' as const,
+      path: '/api/:tenantId/terceros/:id',
+      input: insertTerceroSchema,
+      responses: {
+        200: z.custom<typeof terceros.$inferSelect>(),
+        400: errorSchemas.validation,
+        404: errorSchemas.notFound,
+      },
+    },
+    delete: {
+      method: 'DELETE' as const,
+      path: '/api/:tenantId/terceros/:id',
+      responses: {
+        204: z.null(),
+        404: errorSchemas.notFound,
+      },
     }
   },
   planCuentas: {
