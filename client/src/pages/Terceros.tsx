@@ -220,7 +220,7 @@ export default function Terceros() {
               <Plus className="h-4 w-4" /> Nuevo Tercero
             </button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-3xl w-full max-h-[85vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-5xl w-full max-h-[85vh] min-h-[50vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{mode === "edit" ? "Editar Tercero" : "Registrar Nuevo Tercero"}</DialogTitle>
             </DialogHeader>
@@ -232,9 +232,9 @@ export default function Terceros() {
                   <TabsTrigger value="tributario" className="flex-1">Tributario</TabsTrigger>
                 </TabsList>
 
-                <ScrollArea className="max-h-[65vh] mt-3">
+                <ScrollArea className="h-[42vh] mt-3">
                   <TabsContent value="datos_basicos" className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                       <div className="space-y-2">
                         <label className="text-sm font-medium">Tipo de Persona</label>
                         <select {...form.register("tipoPersona")} className="input-field">
@@ -252,51 +252,49 @@ export default function Terceros() {
                       </div>
                       <div className="space-y-2">
                         <label className="text-sm font-medium">Identificación</label>
-                        <input {...form.register("identificacion")} className="input-field font-mono" placeholder="900123456" />
+                        <input {...form.register("identificacion")} className="input-field font-mono" placeholder="numero de identificación" />
                         {form.formState.errors.identificacion && <p className="text-xs text-red-500">{form.formState.errors.identificacion.message}</p>}
                       </div>
-                    </div>
-                    {requiereDV(form.watch("tipoIdentificacion")) && (
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="space-y-2 md:col-start-3">
+                      {requiereDV(form.watch("tipoIdentificacion")) && (
+                        <div className="space-y-2">
                           <label className="text-sm font-medium">DV (Dígito de Verificación)</label>
                           <input {...form.register("dv")} className="input-field w-full" placeholder="0" maxLength={1} />
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
 
                     {form.watch("tipoPersona") === 'persona_natural' ? (
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div className="space-y-2">
-                          <label className="text-sm font-medium">Nombre</label>
-                          <input {...form.register("nombre")} className="input-field" placeholder="Juan" />
+                          <label className="text-sm font-medium">Nombres</label>
+                          <input {...form.register("nombre")} className="input-field" placeholder="Nombres del tercero" />
                         </div>
                         <div className="space-y-2">
                           <label className="text-sm font-medium">Apellidos</label>
-                          <input {...form.register("apellidos")} className="input-field" placeholder="Pérez" />
+                          <input {...form.register("apellidos")} className="input-field" placeholder="Apellidos del tercero" />
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-2 md:col-span-2">
                           <label className="text-sm font-medium">Nombre Completo</label>
-                          <input {...form.register("nombreCompleto")} className="input-field" placeholder="Juan Pérez" />
+                          <input {...form.register("nombreCompleto")} className="input-field" placeholder="Nombre completo del tercero" />
                         </div>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="space-y-2 md:col-span-2">
                           <label className="text-sm font-medium">Razón Social</label>
-                          <input {...form.register("razonSocial")} className="input-field" placeholder="Empresa S.A.S." />
+                          <input {...form.register("razonSocial")} className="input-field" placeholder="Nombre de la empresa" />
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-2 md:col-span-2">
                           <label className="text-sm font-medium">Nombre Comercial / Completo</label>
-                          <input {...form.register("nombreCompleto")} className="input-field" placeholder="Empresa S.A.S." />
+                          <input {...form.register("nombreCompleto")} className="input-field" placeholder="Nombre comercial de la empresa" />
                         </div>
                       </div>
                     )}
                   </TabsContent>
 
                   <TabsContent value="tributario" className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="space-y-2">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className="space-y-2 md:col-span-2">
                         <label className="text-sm font-medium">Régimen Tributario</label>
                         <select {...form.register("tipoRegimen")} className="input-field">
                           {OPCIONES_TIPO_REGIMEN.map(opt => (
@@ -304,7 +302,7 @@ export default function Terceros() {
                           ))}
                         </select>
                       </div>
-                      <div className="space-y-2 flex items-center gap-4 pt-6">
+                      <div className="space-y-2 md:col-span-2 flex items-center gap-4 pt-6">
                         <label className="flex items-center gap-2 text-sm text-slate-600">
                           <input type="checkbox" {...form.register("esAutorretenedor")} className="rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
                           Autorretenedor
@@ -321,8 +319,8 @@ export default function Terceros() {
                         </div>
                       )}
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="space-y-2">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className="space-y-2 md:col-span-2">
                         <label className="text-sm font-medium">Tipo</label>
                         <select {...form.register("tipo")} className="input-field">
                           <option value="cliente">Cliente</option>
@@ -335,7 +333,7 @@ export default function Terceros() {
                       </div>
                       <div className="space-y-2">
                         <label className="text-sm font-medium">Vínculo Económico</label>
-                        <input {...form.register("vinculoEconomico")} className="input-field" placeholder="Proveedor habitual" />
+                        <input {...form.register("vinculoEconomico")} className="input-field" placeholder="Opcional para NIIF" />
                       </div>
                       <div className="flex items-center pt-6">
                         <label className="flex items-center gap-2 text-sm text-slate-600">
@@ -347,27 +345,7 @@ export default function Terceros() {
                   </TabsContent>
 
                   <TabsContent value="contacto" className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                      <div className="space-y-2 md:col-span-2">
-                        <label className="text-sm font-medium">Dirección</label>
-                        <input {...form.register("direccion")} className="input-field" placeholder="Calle 10 # 20-30" />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Email</label>
-                        <input type="email" {...form.register("email")} className="input-field" placeholder="contacto@empresa.com" />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Estado</label>
-                        <select {...form.register("estado")} className="input-field">
-                          <option value="activo">Activo</option>
-                          <option value="inactivo">Inactivo</option>
-                          <option value="suspendido">Suspendido</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    {/* Ubicación Geográfica */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                       <div className="space-y-2">
                         <label className="text-sm font-medium">País</label>
                         <select 
@@ -380,7 +358,7 @@ export default function Terceros() {
                           }}
                         >
                           <option value="">Seleccione...</option>
-                          {paises?.map(pais => (
+                          {paises?.sort((a, b) => b.nombre.localeCompare(a.nombre)).map(pais => (
                             <option key={pais.codigo} value={pais.codigo}>{pais.nombre}</option>
                           ))}
                         </select>
@@ -402,7 +380,7 @@ export default function Terceros() {
                           ))}
                         </select>
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-2 md:col-span-2">
                         <label className="text-sm font-medium">Municipio</label>
                         <select 
                           {...form.register("municipioCodigo")}
@@ -417,14 +395,39 @@ export default function Terceros() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className="space-y-2 md:col-span-2">
+                        <label className="text-sm font-medium">Dirección</label>
+                        <input {...form.register("direccion")} className="input-field" placeholder="Dirección del tercero acepta signos especiales" />
+                      </div>
                       <div className="space-y-2">
                         <label className="text-sm font-medium">Teléfono 1</label>
-                        <input {...form.register("telefono1")} className="input-field" placeholder="+57 300 123 4567" />
+                        <input {...form.register("telefono1")} className="input-field" placeholder="Número de teléfono 1, acepta indicativos y espacios" />
                       </div>
                       <div className="space-y-2">
                         <label className="text-sm font-medium">Teléfono 2</label>
-                        <input {...form.register("telefono2")} className="input-field" placeholder="+57 1 555 1234" />
+                        <input {...form.register("telefono2")} className="input-field" placeholder="Número de teléfono 2, acepta indicativos y espacios" />
+                      </div>
+
+
+
+
+                    </div>
+
+                    {/*  */}
+              
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Email</label>
+                        <input type="email" {...form.register("email")} className="input-field" placeholder="email principal del tercero" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Estado</label>
+                        <select {...form.register("estado")} className="input-field">
+                          <option value="activo">Activo</option>
+                          <option value="inactivo">Inactivo</option>
+                          <option value="suspendido">Suspendido</option>
+                        </select>
                       </div>
                     </div>
                   </TabsContent>
