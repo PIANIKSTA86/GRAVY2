@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Plus, Search, ChevronLeft, ChevronRight, User, Pencil, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -74,6 +74,18 @@ export default function Terceros() {
     resolver: zodResolver(insertTerceroSchema),
     defaultValues,
   });
+
+  const watchTipoPersona = form.watch("tipoPersona");
+  const watchNombre = form.watch("nombre");
+  const watchApellidos = form.watch("apellidos");
+  const watchRazonSocial = form.watch("razonSocial");
+
+  useEffect(() => {
+    const computed = watchTipoPersona === 'persona_natural'
+      ? [watchNombre, watchApellidos].filter(Boolean).join(' ').trim()
+      : (watchRazonSocial || "");
+    form.setValue("nombreCompleto", computed, { shouldValidate: false, shouldDirty: true });
+  }, [watchTipoPersona, watchNombre, watchApellidos, watchRazonSocial, form]);
 
   const resetForm = () => {
     setMode("create");
@@ -227,9 +239,24 @@ export default function Terceros() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="mt-2">
               <Tabs defaultValue="datos_basicos">
                 <TabsList className="w-full">
-                  <TabsTrigger value="datos_basicos" className="flex-1">Datos básicos</TabsTrigger>
-                  <TabsTrigger value="contacto" className="flex-1">Contacto</TabsTrigger>
-                  <TabsTrigger value="tributario" className="flex-1">Tributario</TabsTrigger>
+                  <TabsTrigger
+                    value="datos_basicos"
+                    className="flex-1 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:border data-[state=active]:border-blue-200"
+                  >
+                    Datos básicos
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="contacto"
+                    className="flex-1 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:border data-[state=active]:border-blue-200"
+                  >
+                    Contacto
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="tributario"
+                    className="flex-1 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:border data-[state=active]:border-blue-200"
+                  >
+                    Tributario
+                  </TabsTrigger>
                 </TabsList>
 
                 <ScrollArea className="h-[42vh] mt-3">
@@ -275,7 +302,12 @@ export default function Terceros() {
                         </div>
                         <div className="space-y-2 md:col-span-2">
                           <label className="text-sm font-medium">Nombre Completo</label>
-                          <input {...form.register("nombreCompleto")} className="input-field" placeholder="Nombre completo del tercero" />
+                          <input
+                            {...form.register("nombreCompleto")}
+                            className="input-field bg-slate-50"
+                            placeholder="Se genera con Nombres + Apellidos"
+                            readOnly
+                          />
                         </div>
                       </div>
                     ) : (
@@ -286,7 +318,12 @@ export default function Terceros() {
                         </div>
                         <div className="space-y-2 md:col-span-2">
                           <label className="text-sm font-medium">Nombre Comercial / Completo</label>
-                          <input {...form.register("nombreCompleto")} className="input-field" placeholder="Nombre comercial de la empresa" />
+                          <input
+                            {...form.register("nombreCompleto")}
+                            className="input-field bg-slate-50"
+                            placeholder="Se completa con Razón Social"
+                            readOnly
+                          />
                         </div>
                       </div>
                     )}
