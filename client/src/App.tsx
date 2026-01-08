@@ -16,6 +16,8 @@ import PlanCuentas from "@/pages/PlanCuentas";
 import Terceros from "@/pages/Terceros";
 import Asientos from "@/pages/Asientos";
 import Niif from "@/pages/Niif";
+import Periodos from "@/pages/Periodos";
+import Comprobantes from "@/pages/Comprobantes";
 
 // Pages - Mi Comunidad
 import Unidades from "@/pages/Unidades";
@@ -59,6 +61,8 @@ function Router() {
       <Route path=":tenantId/terceros" component={Terceros} />
       <Route path=":tenantId/asientos" component={Asientos} />
       <Route path=":tenantId/niif" component={Niif} />
+      <Route path=":tenantId/periodos" component={Periodos} />
+      <Route path=":tenantId/comprobantes" component={Comprobantes} />
       {/* Mi Comunidad */}
       <Route path=":tenantId/unidades" component={Unidades} />
       <Route path=":tenantId/facturacion-ph" component={FacturaciónPH} />

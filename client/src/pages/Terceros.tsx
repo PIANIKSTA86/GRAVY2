@@ -9,8 +9,8 @@ import { Loading } from "@/components/ui/Loading";
 import { 
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger 
 } from "@/components/ui/dialog";
-import { useState } from "react";
-import { Plus, Search, User } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Plus, Search, ChevronLeft, ChevronRight, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 type TerceroForm = Omit<z.infer<typeof insertTerceroSchema>, "tenantId">;
@@ -22,6 +22,8 @@ export default function Terceros() {
   const createTercero = useCreateTercero(id);
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
   const { toast } = useToast();
 
   const form = useForm<TerceroForm>({
@@ -49,6 +51,22 @@ export default function Terceros() {
     t.nombre.toLowerCase().includes(searchTerm.toLowerCase()) || 
     t.identificacion.includes(searchTerm)
   );
+
+  // Paginación
+  const totalPages = Math.ceil((filteredTerceros?.length || 0) / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedTerceros = filteredTerceros?.slice(startIndex, endIndex);
+
+  // Reset página cuando se filtra
+  useMemo(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   return (
     <Layout tenantId={tenantId!}>
@@ -107,54 +125,157 @@ export default function Terceros() {
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-         {/* Search Bar - Full Width on Mobile */}
-         <div className="md:col-span-2 lg:col-span-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-              <input 
-                type="text" 
-                placeholder="Buscar tercero por nombre o identificación..." 
-                className="input-field pl-10"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-         </div>
+      {/* Search and Filter Bar */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 mb-6 p-4">
+        <div className="flex flex-col sm:flex-row gap-4 items-center">
+          <div className="relative flex-1 w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+            <input 
+              type="text" 
+              placeholder="Buscar por nombre o identificación..." 
+              className="input-field pl-10 w-full"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm text-slate-600 whitespace-nowrap">Mostrar:</label>
+            <select 
+              value={itemsPerPage}
+              onChange={(e) => {
+                setItemsPerPage(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="input-field w-20"
+            >
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
+        </div>
+      </div>
 
-         {isLoading ? (
-            <div className="col-span-full py-12"><Loading /></div>
-         ) : filteredTerceros && filteredTerceros.length > 0 ? (
-            filteredTerceros.map(tercero => (
-              <div key={tercero.id} className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-all group">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
-                      <User className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-slate-900 truncate max-w-[150px]">{tercero.nombre}</h3>
-                      <p className="text-xs text-slate-500 font-mono">{tercero.identificacion}</p>
-                    </div>
-                  </div>
-                  <span className="px-2 py-1 bg-slate-50 text-slate-600 text-xs font-bold uppercase rounded border border-slate-100">
-                    {tercero.tipo}
-                  </span>
-                </div>
-                {tercero.parteRelacionada && (
-                  <div className="mt-4 pt-4 border-t border-slate-50">
-                    <span className="text-xs text-purple-600 font-medium bg-purple-50 px-2 py-1 rounded">
-                      Parte Relacionada
-                    </span>
-                  </div>
-                )}
+      {/* Tabla de Terceros */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        {isLoading ? (
+          <div className="p-12"><Loading /></div>
+        ) : paginatedTerceros && paginatedTerceros.length > 0 ? (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 border-b border-slate-200">
+                  <tr>
+                    <th className="px-6 py-2 text-left font-medium text-slate-600">Identificación</th>
+                    <th className="px-6 py-2 text-left font-medium text-slate-600">Nombre / Razón Social</th>
+                    <th className="px-6 py-2 text-center font-medium text-slate-600">Tipo</th>
+                    <th className="px-6 py-2 text-center font-medium text-slate-600">Estado NIIF</th>
+                    <th className="px-6 py-2 text-center font-medium text-slate-600">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {paginatedTerceros.map((tercero) => (
+                    <tr key={tercero.id} className="hover:bg-slate-50 transition-colors group">
+                      <td className="px-6 py-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-blue-100 group-hover:text-blue-600 transition-colors">
+                            <User className="h-3.5 w-3.5" />
+                          </div>
+                          <span className="font-mono text-sm font-medium text-slate-700">{tercero.identificacion}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-2">
+                        <span className="font-medium text-sm text-slate-900">{tercero.nombre}</span>
+                      </td>
+                      <td className="px-6 py-2 text-center">
+                        <span className="px-2.5 py-0.5 bg-slate-100 text-slate-700 text-xs font-semibold uppercase rounded-full">
+                          {tercero.tipo}
+                        </span>
+                      </td>
+                      <td className="px-6 py-2 text-center">
+                        {tercero.parteRelacionada ? (
+                          <span className="px-2.5 py-0.5 bg-purple-100 text-purple-700 text-xs font-semibold rounded-full">
+                            Parte Relacionada
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 text-xs">-</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-2 text-center">
+                        <button className="text-blue-600 hover:text-blue-700 text-xs font-medium">
+                          Ver detalles
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Paginación */}
+            <div className="px-6 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+              <div className="text-sm text-slate-600">
+                Mostrando <span className="font-semibold">{startIndex + 1}</span> a <span className="font-semibold">{Math.min(endIndex, filteredTerceros?.length || 0)}</span> de <span className="font-semibold">{filteredTerceros?.length || 0}</span> terceros
               </div>
-            ))
-         ) : (
-           <div className="col-span-full py-12 text-center text-slate-500">
-             No se encontraron terceros.
-           </div>
-         )}
+              
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="p-2 rounded-lg border border-slate-200 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                
+                <div className="flex gap-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => handlePageChange(pageNum)}
+                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                          currentPage === pageNum
+                            ? 'bg-blue-600 text-white'
+                            : 'hover:bg-slate-200 text-slate-600'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="p-2 rounded-lg border border-slate-200 hover:bg-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="p-12 text-center text-slate-500">
+            <User className="h-12 w-12 text-slate-300 mx-auto mb-3" />
+            <p>No se encontraron terceros.</p>
+            {searchTerm && (
+              <p className="text-sm mt-2">Prueba con otros términos de búsqueda.</p>
+            )}
+          </div>
+        )}
       </div>
     </Layout>
   );

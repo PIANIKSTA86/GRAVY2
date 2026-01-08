@@ -15,7 +15,8 @@ import {
   FileArchive,
   Calendar,
   FileArchive as ArchiveIcon,
-  MessageSquare
+  MessageSquare,
+  FileSpreadsheet
 } from "lucide-react";
 import { useState } from "react";
 import { clsx } from "clsx";
@@ -38,6 +39,8 @@ export default function Layout({ children, tenantId }: LayoutProps) {
     { name: "Terceros", href: `/${tenantId}/terceros`, icon: Users },
     { name: "Asientos Contables", href: `/${tenantId}/asientos`, icon: FileText },
     { name: "Políticas NIIF", href: `/${tenantId}/niif`, icon: Scale },
+    { name: "Períodos Contables", href: `/${tenantId}/periodos`, icon: Calendar },
+    { name: "Comprobantes", href: `/${tenantId}/comprobantes`, icon: FileSpreadsheet },
   ];
 
   const miComunidadItems = [
