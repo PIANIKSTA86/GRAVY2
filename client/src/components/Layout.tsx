@@ -69,29 +69,6 @@ export default function Layout({ children, tenantId }: LayoutProps) {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row">
-      {/* Desktop Toggle Button - Fixed Position */}
-      <div className="hidden lg:flex fixed top-4 left-4 z-30">
-        <Tooltip delayDuration={300}>
-          <TooltipTrigger asChild>
-            <button
-              onClick={toggleSidebar}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-900 text-white shadow-md shadow-slate-900/40 border border-slate-700 hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
-              aria-label={isCollapsed ? "Expandir sidebar" : "Colapsar sidebar"}
-            >
-              {isCollapsed ? (
-                <PanelLeftOpen className="h-5 w-5" />
-              ) : (
-                <PanelLeftClose className="h-5 w-5" />
-              )}
-              <span className="text-sm font-medium hidden xl:inline">
-                {isCollapsed ? "Expandir" : "Colapsar"}
-              </span>
-            </button>
-          </TooltipTrigger>
-          <TooltipContent>Ctrl+B</TooltipContent>
-        </Tooltip>
-      </div>
-
       {/* Desktop Sidebar */}
       <aside
         data-state={isCollapsed ? "collapsed" : "expanded"}
@@ -109,7 +86,7 @@ export default function Layout({ children, tenantId }: LayoutProps) {
             className="h-10 w-10 rounded-lg border border-blue-500/30 bg-white object-contain shadow-lg shadow-blue-600/40"
           />
           {!isCollapsed && (
-            <div className="animate-in fade-in duration-300">
+            <div className="flex-1 animate-in fade-in duration-300">
               <h1 className="font-display font-bold text-xl tracking-tight text-white leading-none">
                 GRAVY
               </h1>
@@ -117,6 +94,28 @@ export default function Layout({ children, tenantId }: LayoutProps) {
                 Contabilidad Pro
               </p>
             </div>
+          )}
+          {/* Toggle Button - Integrated in Header */}
+          {!isCollapsed && (
+            <button
+              onClick={toggleSidebar}
+              className="shrink-0 p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              aria-label="Colapsar sidebar"
+              title="Colapsar (Ctrl+B)"
+            >
+              <PanelLeftClose className="h-5 w-5" />
+            </button>
+          )}
+          {/* Expand Button when Collapsed */}
+          {isCollapsed && (
+            <button
+              onClick={toggleSidebar}
+              className="absolute -right-3 top-6 p-1.5 rounded-full bg-slate-900 border border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              aria-label="Expandir sidebar"
+              title="Expandir (Ctrl+B)"
+            >
+              <PanelLeftOpen className="h-4 w-4" />
+            </button>
           )}
         </div>
 
@@ -162,6 +161,7 @@ export default function Layout({ children, tenantId }: LayoutProps) {
             items={contabilidadItems}
             tenantId={tenantId}
             isCollapsed={isCollapsed}
+            onExpand={toggleSidebar}
           />
 
           <CollapsibleMenu
@@ -170,6 +170,7 @@ export default function Layout({ children, tenantId }: LayoutProps) {
             items={miComunidadItems}
             tenantId={tenantId}
             isCollapsed={isCollapsed}
+            onExpand={toggleSidebar}
           />
         </nav>
 
