@@ -115,10 +115,10 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="mb-8 text-center">
-          <div className="inline-flex items-center justify-center p-3 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-2xl mb-4">
-            <LogIn className="h-8 w-8 text-white" />
+          <div className="inline-flex items-center justify-center p-3 rounded-2xl mb-4 bg-white shadow-lg shadow-blue-600/30">
+            <img src="/icono.png" alt="ContaGrav" className="h-10 w-10 object-contain" />
           </div>
-          <h1 className="text-3xl font-display font-bold mb-2">Gravy</h1>
+          <h1 className="text-3xl font-display font-bold mb-2 tracking-tight">Gravy</h1>
           <p className="text-slate-400">Contabilidad Multi-empresa</p>
         </div>
 

@@ -9,7 +9,7 @@ export default function Comprobantes() {
     <Layout tenantId={tenantId!}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-display font-bold text-slate-900">Tipos de Comprobantes</h1>
+          <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Tipos de Comprobantes</h1>
           <p className="text-slate-500">Gestiona tipos de transacciones, prefijos y consecutivos.</p>
         </div>
         <button className="btn-primary gap-2">

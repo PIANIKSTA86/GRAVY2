@@ -17,7 +17,7 @@ import {
 import { z } from "zod";
 import { Loading } from "@/components/ui/Loading";
 import { 
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter 
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription 
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -140,7 +140,11 @@ export default function Terceros() {
       } as TerceroForm;
 
       if (mode === "edit" && selectedTercero) {
-        const updated = await updateTercero.mutateAsync({ id: selectedTercero.id, data: payload });
+        const terceroId = Number(selectedTercero.id);
+        if (!Number.isFinite(terceroId)) {
+          throw new Error("ID del tercero inválido");
+        }
+        const updated = await updateTercero.mutateAsync({ id: terceroId, data: payload });
         toast({ title: "Tercero actualizado" });
         setSelectedTercero(updated);
       } else {
@@ -195,7 +199,11 @@ export default function Terceros() {
     if (!confirmDelete) return;
 
     try {
-      await deleteTercero.mutateAsync(tercero.id);
+      const terceroId = Number(tercero.id);
+      if (!Number.isFinite(terceroId)) {
+        throw new Error("ID del tercero inválido");
+      }
+      await deleteTercero.mutateAsync(terceroId);
       toast({ title: "Tercero eliminado" });
       if (detailsOpen) setDetailsOpen(false);
       if (selectedTercero?.id === tercero.id) setSelectedTercero(null);
@@ -209,7 +217,7 @@ export default function Terceros() {
     <Layout tenantId={tenantId!}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-display font-bold text-slate-900">Terceros</h1>
+          <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Terceros</h1>
           <p className="text-slate-500">Administra clientes, proveedores y empleados.</p>
         </div>
 
@@ -235,25 +243,28 @@ export default function Terceros() {
           <DialogContent className="sm:max-w-5xl w-full max-h-[85vh] min-h-[50vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{mode === "edit" ? "Editar Tercero" : "Registrar Nuevo Tercero"}</DialogTitle>
+              <DialogDescription>
+                {mode === "edit" ? "Modifica los datos del tercero" : "Completa el formulario para registrar un nuevo tercero"}
+              </DialogDescription>
             </DialogHeader>
             <form onSubmit={form.handleSubmit(onSubmit)} className="mt-2">
               <Tabs defaultValue="datos_basicos">
                 <TabsList className="w-full">
                   <TabsTrigger
                     value="datos_basicos"
-                    className="flex-1 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:border data-[state=active]:border-blue-200"
+                    className="flex-1 data-[state=active]:bg-blue-100 data-[state=active]:text-blue-600 data-[state=active]:border data-[state=active]:border-blue-300"
                   >
                     Datos básicos
                   </TabsTrigger>
                   <TabsTrigger
                     value="contacto"
-                    className="flex-1 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:border data-[state=active]:border-blue-200"
+                    className="flex-1 data-[state=active]:bg-blue-100 data-[state=active]:text-blue-600 data-[state=active]:border data-[state=active]:border-blue-300"
                   >
                     Contacto
                   </TabsTrigger>
                   <TabsTrigger
                     value="tributario"
-                    className="flex-1 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:border data-[state=active]:border-blue-200"
+                    className="flex-1 data-[state=active]:bg-blue-100 data-[state=active]:text-blue-600 data-[state=active]:border data-[state=active]:border-blue-300"
                   >
                     Tributario
                   </TabsTrigger>
@@ -593,7 +604,7 @@ export default function Terceros() {
                       <td className="px-6 py-2 text-center">
                         <div className="flex items-center justify-center gap-2">
                           <button
-                            className="p-2 rounded-full hover:bg-slate-100 text-slate-600 hover:text-blue-700 transition-colors"
+                            className="p-2 rounded-full hover:bg-slate-100 text-slate-600 hover:text-blue-600 transition-colors"
                             title="Modificar"
                             onClick={(e) => { e.stopPropagation(); handleEdit(tercero); }}
                           >
@@ -684,6 +695,9 @@ export default function Terceros() {
         <DialogContent className="sm:max-w-3xl w-full max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Detalles del Tercero</DialogTitle>
+            <DialogDescription>
+              Información completa del tercero registrado
+            </DialogDescription>
           </DialogHeader>
           {selectedTercero ? (
             <div className="space-y-6">

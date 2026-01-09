@@ -77,7 +77,7 @@ export default function Asientos() {
     <Layout tenantId={tenantId!}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-display font-bold text-slate-900">Libro Diario</h1>
+          <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Libro Diario</h1>
           <p className="text-slate-500">Registro de movimientos contables.</p>
         </div>
 
@@ -231,7 +231,7 @@ export default function Asientos() {
             <div key={asiento.id} className="bg-white border border-slate-100 rounded-xl p-4 shadow-sm hover:shadow-md transition-all">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-4">
-                   <div className="w-12 h-12 bg-blue-50 rounded-lg flex flex-col items-center justify-center text-blue-700">
+                   <div className="w-12 h-12 bg-blue-50 rounded-lg flex flex-col items-center justify-center text-blue-600">
                       <span className="text-xs font-bold uppercase">{format(new Date(asiento.fecha), "MMM")}</span>
                       <span className="text-lg font-bold font-mono">{format(new Date(asiento.fecha), "dd")}</span>
                    </div>

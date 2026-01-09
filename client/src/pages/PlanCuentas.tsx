@@ -52,8 +52,8 @@ export default function PlanCuentas() {
     <Layout tenantId={tenantId!}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-display font-bold text-slate-900">Plan de Cuentas</h1>
-          <p className="text-slate-500">Gestiona la estructura contable de tu empresa.</p>
+          <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Plan de Cuentas</h1>
+          <p className="text-slate-600">Gestiona la estructura contable de tu empresa.</p>
         </div>
 
         <Dialog open={open} onOpenChange={setOpen}>

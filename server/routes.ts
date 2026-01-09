@@ -77,6 +77,10 @@ export async function registerRoutes(
     try {
       const tenantId = Number(req.params.tenantId);
       const id = Number(req.params.id);
+      if (!Number.isFinite(tenantId) || !Number.isFinite(id)) {
+        res.status(400).json({ message: "Parámetros inválidos" });
+        return;
+      }
       const input = api.terceros.update.input.parse(req.body);
       const item = await storage.updateTercero(id, tenantId, { ...input, tenantId });
       res.status(200).json(item);
@@ -97,6 +101,10 @@ export async function registerRoutes(
     try {
       const tenantId = Number(req.params.tenantId);
       const id = Number(req.params.id);
+      if (!Number.isFinite(tenantId) || !Number.isFinite(id)) {
+        res.status(400).json({ message: "Parámetros inválidos" });
+        return;
+      }
       await storage.deleteTercero(id, tenantId);
       res.status(204).send();
     } catch (err) {

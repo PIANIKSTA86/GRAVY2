@@ -26,11 +26,11 @@ export default function Dashboard() {
   return (
     <Layout tenantId={id}>
       <header className="mb-8">
-        <h1 className="text-3xl font-display font-bold text-slate-900">
+        <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">
           Panel General
         </h1>
-        <p className="text-slate-500 mt-2">
-          Resumen financiero para <span className="font-semibold text-blue-700">{tenant?.nombre}</span>
+        <p className="text-slate-600 mt-2">
+          Resumen financiero para <span className="font-semibold text-blue-600">{tenant?.nombre}</span>
         </p>
       </header>
 
@@ -126,8 +126,8 @@ export default function Dashboard() {
           </div>
 
           <div className="mt-8 pt-6 border-t border-white/10">
-            <h4 className="text-xs font-semibold text-blue-200 uppercase tracking-wider mb-2">Estado del Sistema</h4>
-            <div className="flex items-center gap-2 text-sm text-slate-300">
+            <h4 className="text-xs font-semibold text-slate-200 uppercase tracking-wider mb-2">Estado del Sistema</h4>
+            <div className="flex items-center gap-2 text-sm text-slate-400">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
               Base de Datos Conectada
             </div>

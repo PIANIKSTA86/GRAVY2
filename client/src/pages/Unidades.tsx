@@ -9,7 +9,7 @@ export default function Unidades() {
     <Layout tenantId={tenantId!}>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-display font-bold text-slate-900">Gestión de Unidades</h1>
+          <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Gestión de Unidades</h1>
           <p className="text-slate-500">Administra las unidades habitacionales, propietarios y características.</p>
         </div>
         <button className="btn-primary gap-2">

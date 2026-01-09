@@ -14,7 +14,7 @@ export default function LoginLanding() {
             Sesión requerida
           </div>
           <div className="space-y-3">
-            <h1 className="text-4xl md:text-5xl font-display font-bold leading-tight">
+            <h1 className="text-4xl md:text-5xl font-display font-bold leading-tight tracking-tight">
               Inicia sesión para continuar
             </h1>
             <p className="text-slate-300 text-lg">

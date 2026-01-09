@@ -29,13 +29,13 @@ export function CollapsibleMenu({ title, icon: Icon, items, tenantId }: Collapsi
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={clsx(
-          "w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 group",
+          "w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 group",
           isAnyActive
-            ? "bg-blue-600 text-white shadow-md shadow-blue-900/30 translate-x-1"
-            : "text-slate-300 hover:bg-slate-800 hover:text-white hover:translate-x-1"
+            ? "bg-blue-600 text-white shadow-md shadow-blue-600/40 translate-x-1"
+            : "text-slate-400 hover:bg-slate-800 hover:text-white hover:translate-x-1"
         )}
       >
-        <Icon className={clsx("h-5 w-5", isAnyActive ? "text-white" : "text-slate-400 group-hover:text-white")} />
+        <Icon className={clsx("h-5 w-5", isAnyActive ? "text-white" : "text-slate-500 group-hover:text-white")} />
         <span className="flex-1 text-left">{title}</span>
         <ChevronDown
           className={clsx(
@@ -57,11 +57,11 @@ export function CollapsibleMenu({ title, icon: Icon, items, tenantId }: Collapsi
                 className={clsx(
                   "flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group",
                   isActive
-                    ? "bg-blue-500/20 text-blue-200 border-l-2 border-blue-500 pl-3"
+                    ? "bg-blue-600/20 text-slate-100 border-l-2 border-blue-600 pl-3"
                     : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200 border-l-2 border-transparent"
                 )}
               >
-                <item.icon className={clsx("h-4 w-4", isActive ? "text-blue-300" : "text-slate-500 group-hover:text-slate-300")} />
+                <item.icon className={clsx("h-4 w-4", isActive ? "text-blue-400" : "text-slate-500 group-hover:text-slate-300")} />
                 <span className="flex-1">{item.name}</span>
               </Link>
             );

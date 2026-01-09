@@ -83,9 +83,9 @@ export default {
         },
       },
       fontFamily: {
-        sans: ["Inter", "sans-serif"],
-        mono: ["JetBrains Mono", "monospace"],
-        display: ["Playfair Display", "serif"],
+        sans: ["Plus Jakarta Sans", "Inter", "system-ui", "sans-serif"],
+        mono: ["JetBrains Mono", "Consolas", "monospace"],
+        display: ["Sora", "Plus Jakarta Sans", "sans-serif"],
       },
       keyframes: {
         "accordion-down": {

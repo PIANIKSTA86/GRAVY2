@@ -73,10 +73,10 @@ export default function TenantSelection() {
 
       <div className="w-full max-w-4xl">
         <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center p-4 bg-blue-600 rounded-2xl shadow-lg shadow-blue-900/20 mb-6">
-            <Building2 className="h-10 w-10 text-white" />
+          <div className="inline-flex items-center justify-center p-4 bg-white rounded-2xl shadow-lg shadow-blue-600/30 mb-6 border border-blue-100">
+            <img src="/icono.png" alt="ContaGrav" className="h-12 w-12 object-contain" />
           </div>
-          <h1 className="text-4xl font-display font-bold text-slate-900 mb-3">Bienvenido a GRAVY</h1>
+          <h1 className="text-4xl font-display font-bold text-slate-900 mb-3 tracking-tight">Bienvenido a GRAVY</h1>
           <p className="text-lg text-slate-500 max-w-lg mx-auto">
             Sistema contable multi-empresa con soporte NIIF. 
             Selecciona una empresa para comenzar o crea una nueva.
@@ -158,14 +158,14 @@ export default function TenantSelection() {
                   
                   <div>
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="px-2 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-bold uppercase tracking-wider">
+                      <span className="px-2 py-1 rounded-md bg-blue-100 text-blue-600 text-xs font-bold uppercase tracking-wider">
                         {tenant.tipoEmpresa}
                       </span>
                       <span className="px-2 py-1 rounded-md bg-slate-100 text-slate-600 text-xs font-bold uppercase tracking-wider">
                         Grupo {tenant.grupoNiif}
                       </span>
                     </div>
-                    <h3 className="text-xl font-bold text-slate-900 group-hover:text-blue-700 transition-colors line-clamp-2">
+                    <h3 className="text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-2">
                       {tenant.nombre}
                     </h3>
                   </div>

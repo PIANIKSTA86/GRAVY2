@@ -52,13 +52,15 @@ export default function Layout({ children, tenantId }: LayoutProps) {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-slate-50 flex">
       {/* Sidebar Desktop */}
       <aside className="hidden lg:flex w-72 flex-col bg-slate-900 text-white fixed h-full shadow-xl z-20">
-        <div className="p-6 border-b border-slate-800 flex items-center gap-3">
-          <div className="h-10 w-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-900/50">
-            <Building2 className="text-white h-6 w-6" />
-          </div>
+        <div className="p-6 border-b border-slate-700 flex items-center gap-3">
+          <img
+            src="/icono.png"
+            alt="ContaGrav"
+            className="h-10 w-10 rounded-lg border border-blue-500/30 bg-white object-contain shadow-lg shadow-blue-600/40"
+          />
           <div>
             <h1 className="font-display font-bold text-xl tracking-tight text-white leading-none">GRAVY</h1>
             <p className="text-xs text-slate-400 mt-1 uppercase tracking-wider font-semibold">Contabilidad Pro</p>
@@ -66,9 +68,9 @@ export default function Layout({ children, tenantId }: LayoutProps) {
         </div>
 
         {tenant && (
-          <div className="px-6 py-4 bg-slate-800/50 border-b border-slate-800">
+          <div className="px-6 py-4 bg-slate-800/40 border-b border-slate-700">
             <p className="text-xs text-slate-400 font-medium mb-1">Empresa Actual</p>
-            <p className="font-semibold truncate text-blue-200">{tenant.nombre}</p>
+            <p className="font-semibold truncate text-slate-100">{tenant.nombre}</p>
           </div>
         )}
 
@@ -104,10 +106,10 @@ export default function Layout({ children, tenantId }: LayoutProps) {
           />
         </nav>
 
-        <div className="p-4 border-t border-slate-800">
+        <div className="p-4 border-t border-slate-700">
           <Link 
             href="/"
-            className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors"
+            className="flex items-center gap-3 px-4 py-3 text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
           >
             <LogOut className="h-5 w-5" />
             Cambiar Empresa
@@ -117,10 +119,10 @@ export default function Layout({ children, tenantId }: LayoutProps) {
 
       {/* Mobile Header */}
       <div className="lg:hidden fixed top-0 w-full bg-slate-900 text-white z-20 flex items-center justify-between p-4 shadow-md">
-        <div className="flex items-center gap-2">
-           <Building2 className="text-blue-500 h-6 w-6" />
-           <span className="font-display font-bold text-lg">GRAVY</span>
-        </div>
+          <div className="flex items-center gap-2">
+            <img src="/icono.png" alt="ContaGrav" className="h-8 w-8 rounded-md bg-white object-contain" />
+            <span className="font-display font-bold text-lg">GRAVY</span>
+          </div>
         <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
           {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
